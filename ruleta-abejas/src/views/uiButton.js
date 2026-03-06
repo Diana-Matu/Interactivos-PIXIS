@@ -28,7 +28,7 @@ export function createButton(text, onClick) {
         fill: 0xFFFFFF,
         align: 'center',
         dropShadow: true,
-        dropShadowColor: '#d1681d',
+        dropShadowColor: '#ecaa7a',
         dropShadowDistance: 3
     });
     buttonText.anchor.set(0.5);

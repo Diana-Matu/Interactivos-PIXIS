@@ -16,31 +16,18 @@ export class WheelController {
         
         this.app.stage.addChild(this.container);
         
-        // Crear y añadir la flecha indicadora
+        // Crear y añadir la flecha indicadora USANDO EL MÉTODO DE WHEELVIEW
         this.createArrow();
     }
 
     createArrow() {
-        this.arrow = new PIXI.Graphics();
-        this.arrow.beginFill(0xFF0000);
-        this.arrow.drawPolygon([
-            -20, -310,  //radio
-            20, -310,
-            0, -340
-        ]);
-        this.arrow.endFill();
+        // USAR el método createArrow de WheelView en lugar de crear la flecha manualmente
+        this.arrow = this.wheelView.createArrow();
         
-        // Borde blanco
-        this.arrow.lineStyle(3, 0xFFFFFF);
-        this.arrow.drawPolygon([
-            -20, -310,
-            20, -310,
-            0, -340
-        ]);
-        
-        // Posicionar la flecha 
+        // La flecha ya viene posicionada correctamente desde WheelView
+        // pero podemos ajustar su posición si es necesario
         this.arrow.x = this.container.x;
-        this.arrow.y = this.container.y - 20;
+        this.arrow.y = this.container.y;
         
         this.app.stage.addChild(this.arrow);
     }
@@ -120,10 +107,11 @@ export class WheelController {
             this.container.rotation = this.currentAngle;
         }
         
-        // Actualizar posición de la flecha si la ventana cambia de tamaño
+        // Actualizar posición de la flecha si es necesario
         if (this.arrow) {
+            // La flecha NO debe rotar con la ruleta, por eso la mantenemos fija
             this.arrow.x = this.container.x;
-            this.arrow.y = this.container.y - 20;
+            this.arrow.y = this.container.y;
         }
     }
 }
