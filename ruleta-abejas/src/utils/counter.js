@@ -1,17 +1,17 @@
 export class Counter {
-    constructor(start = 0) {
-        this.value = start;
+    constructor() {
+        this.value = 0;
     }
-
-    increment() {
+    
+    next() {
         return ++this.value;
     }
-
-    decrement() {
-        return --this.value;
-    }
-
+    
     reset() {
         this.value = 0;
+    }
+    
+    current() {
+        return this.value;
     }
 }

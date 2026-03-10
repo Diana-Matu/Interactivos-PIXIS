@@ -1,16 +1,15 @@
 {
-  "name": "ruleta-abejas",
+  "name": "bee-casino-slots",
   "version": "1.0.0",
-  "description": "Ruleta de abejas en estilo pixel art",
+  "description": "Tragamonedas para generar avatares de abejas en pixel art",
   "main": "src/main.js",
   "scripts": {
-    "start": "npx http-server . -p 8080",
-    "dev": "npx http-server . -p 8080"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "dependencies": {
-    "pixi.js": "^7.4.0"
-  },
-  "devDependencies": {
-    "http-server": "^14.1.1"
+    "pixi.js": "^7.2.4",
+    "vite": "^4.4.5"
   }
 }
