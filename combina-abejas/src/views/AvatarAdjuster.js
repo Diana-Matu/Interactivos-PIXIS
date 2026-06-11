@@ -30,6 +30,11 @@ export class AvatarAdjuster {
         this.orientation = this.config.orientation || 'horizontal';
         this.theme = this.config.theme || 'dark';
         
+        // Escala base que usa el avatar
+        this.AVATAR_BASE_SCALE = 0.07;
+        this.AVATAR_WIDTH = 180;
+        this.AVATAR_HEIGHT = 130;
+        
         this.createFrame();
         this.loadParts();
     }
@@ -177,11 +182,11 @@ export class AvatarAdjuster {
         panel.addChild(arrow);
         
         const sizeUpBtn = this.createSmallButton(10, 75, 85, 30, '+ TAMAÑO', colors.buttonBg, colors.buttonText);
-        sizeUpBtn.on('pointerdown', () => this.adjustSelectedSize(0.1));
+        sizeUpBtn.on('pointerdown', () => this.adjustSelectedSize(0.02));
         panel.addChild(sizeUpBtn);
         
         const sizeDownBtn = this.createSmallButton(105, 75, 85, 30, '- TAMAÑO', colors.buttonBg, colors.buttonText);
-        sizeDownBtn.on('pointerdown', () => this.adjustSelectedSize(-0.1));
+        sizeDownBtn.on('pointerdown', () => this.adjustSelectedSize(-0.02));
         panel.addChild(sizeDownBtn);
         
         const leftBtn = this.createSmallButton(10, 115, 40, 35, '←', colors.buttonBg, colors.buttonText);
@@ -257,11 +262,23 @@ export class AvatarAdjuster {
         for (let i = 0; i < this.currentCombination.length; i++) {
             const part = this.currentCombination[i];
             if (part !== null) {
-                validParts.push({
-                    index: i,
-                    part: part,
-                    name: part.name || `Parte ${i + 1}`
-                });
+                let variantIndex = 0;
+                if (typeof part === 'object' && part.id !== undefined) {
+                    variantIndex = part.id;
+                } else if (typeof part === 'number') {
+                    variantIndex = part;
+                }
+                
+                const slotData = this.config.parts[i];
+                if (slotData && slotData.loadedVariants && slotData.loadedVariants[variantIndex]) {
+                    const variant = slotData.loadedVariants[variantIndex];
+                    validParts.push({
+                        index: i,
+                        name: slotData.name || `Parte ${i + 1}`,
+                        variant: variant,
+                        variantIndex: variantIndex
+                    });
+                }
             }
         }
         
@@ -275,9 +292,6 @@ export class AvatarAdjuster {
             this.container.addChild(noPartsMsg);
             return;
         }
-        
-        const scaleX = this.width / 180;
-        const scaleY = this.height / 130;
         
         let startX, startY, spacingX, spacingY;
         
@@ -293,30 +307,37 @@ export class AvatarAdjuster {
             spacingY = 60;
         }
         
+        // Escala consistente con el avatar
+        // El avatar usa escala 0.2, el ajustador es más grande (500/180 ≈ 2.77)
+        // Aplicamos un factor visual para que no se vea demasiado grande
+        const SCALE_FACTOR = this.width / this.AVATAR_WIDTH;
+        const BASE_SCALE = this.AVATAR_BASE_SCALE * SCALE_FACTOR * 0.5;
+        
         for (let i = 0; i < validParts.length; i++) {
             const item = validParts[i];
-            const part = item.part;
+            const variant = item.variant;
             
             let existingAdj = this.adjustments.parts.find(a => a.index === item.index);
             
-            const canvas = this.createPartCanvas(part);
-            const texture = PIXI.Texture.from(canvas);
+            const texture = PIXI.Texture.from(variant.originalImageElement);
             const sprite = new PIXI.Sprite(texture);
             
             let defaultX, defaultY, defaultScale;
             
             if (existingAdj && existingAdj.x !== undefined && existingAdj.y !== undefined) {
+                const scaleX = this.width / this.AVATAR_WIDTH;
+                const scaleY = this.height / this.AVATAR_HEIGHT;
                 defaultX = existingAdj.x * scaleX;
                 defaultY = existingAdj.y * scaleY;
-                defaultScale = existingAdj.scale;
+                defaultScale = existingAdj.scale * SCALE_FACTOR;
             } else if (this.orientation === 'horizontal') {
                 defaultX = startX + i * spacingX;
                 defaultY = startY;
-                defaultScale = 1;
+                defaultScale = BASE_SCALE;
             } else {
                 defaultX = startX;
                 defaultY = startY + i * spacingY;
-                defaultScale = 1;
+                defaultScale = BASE_SCALE;
             }
             
             sprite.x = defaultX;
@@ -335,7 +356,7 @@ export class AvatarAdjuster {
                 x: defaultX,
                 y: defaultY,
                 scale: defaultScale,
-                part: part
+                variant: variant
             };
             
             sprite.on('pointerdown', (e) => this.onDragStart(sprite, e));
@@ -346,7 +367,7 @@ export class AvatarAdjuster {
                     e.data.originalEvent.preventDefault();
                 }
                 this.selectedPart = sprite;
-                this.adjustSelectedSize(0.1);
+                this.adjustSelectedSize(0.02);
             });
             
             this.container.addChild(sprite);
@@ -361,33 +382,6 @@ export class AvatarAdjuster {
         if (this.partSprites.length > 0) {
             this.selectPart(0);
         }
-    }
-
-    createPartCanvas(part) {
-        const canvas = document.createElement('canvas');
-        canvas.width = 48;
-        canvas.height = 48;
-        const ctx = canvas.getContext('2d');
-        ctx.imageSmoothingEnabled = false;
-        
-        ctx.clearRect(0, 0, 48, 48);
-        
-        if (part.pixels && part.pixels.length > 0) {
-            const scale = 48 / 16;
-            part.pixels.forEach(pixel => {
-                ctx.fillStyle = pixel.color || part.baseColor;
-                ctx.fillRect(pixel.x * scale, pixel.y * scale, scale, scale);
-            });
-        } else {
-            ctx.fillStyle = part.baseColor || '#888888';
-            ctx.fillRect(8, 8, 32, 32);
-            ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 16px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText('?', 24, 32);
-        }
-        
-        return canvas;
     }
 
     showPartMenu() {
@@ -445,7 +439,7 @@ export class AvatarAdjuster {
         
         const data = this.selectedPart.partData;
         if (this.selectedInfo) {
-            this.selectedInfo.text = `${data.name}\nPos: ${Math.round(data.x)},${Math.round(data.y)}\nEscala: ${data.scale.toFixed(1)}`;
+            this.selectedInfo.text = `${data.name}\nPos: ${Math.round(data.x)},${Math.round(data.y)}\nEscala: ${data.scale.toFixed(2)}`;
         }
     }
 
@@ -465,7 +459,7 @@ export class AvatarAdjuster {
         
         const data = sprite.partData;
         if (this.selectedInfo) {
-            this.selectedInfo.text = `${data.name}\nPos: ${Math.round(data.x)},${Math.round(data.y)}\nEscala: ${data.scale.toFixed(1)}`;
+            this.selectedInfo.text = `${data.name}\nPos: ${Math.round(data.x)},${Math.round(data.y)}\nEscala: ${data.scale.toFixed(2)}`;
         }
         
         this.container.on('pointermove', this.onDragMove.bind(this));
@@ -493,7 +487,7 @@ export class AvatarAdjuster {
         
         const data = this.selectedPart.partData;
         if (this.selectedInfo) {
-            this.selectedInfo.text = `${data.name}\nPos: ${Math.round(data.x)},${Math.round(data.y)}\nEscala: ${data.scale.toFixed(1)}`;
+            this.selectedInfo.text = `${data.name}\nPos: ${Math.round(data.x)},${Math.round(data.y)}\nEscala: ${data.scale.toFixed(2)}`;
         }
     }
 
@@ -505,13 +499,17 @@ export class AvatarAdjuster {
     adjustSelectedSize(delta) {
         if (!this.selectedPart) return;
         
-        const newScale = Math.max(0.3, Math.min(2.5, this.selectedPart.scale.x + delta));
+        // Límites ajustados para escala más pequeña
+        const minScale = 0.02;
+        const maxScale = 0.35;
+        
+        const newScale = Math.max(minScale, Math.min(maxScale, this.selectedPart.scale.x + delta));
         this.selectedPart.scale.set(newScale);
         this.selectedPart.partData.scale = newScale;
         
         const data = this.selectedPart.partData;
         if (this.selectedInfo) {
-            this.selectedInfo.text = `${data.name}\nPos: ${Math.round(data.x)},${Math.round(data.y)}\nEscala: ${data.scale.toFixed(1)}`;
+            this.selectedInfo.text = `${data.name}\nPos: ${Math.round(data.x)},${Math.round(data.y)}\nEscala: ${data.scale.toFixed(2)}`;
         }
     }
 
@@ -537,7 +535,7 @@ export class AvatarAdjuster {
         
         const data = this.selectedPart.partData;
         if (this.selectedInfo) {
-            this.selectedInfo.text = `${data.name}\nPos: ${Math.round(data.x)},${Math.round(data.y)}\nEscala: ${data.scale.toFixed(1)}`;
+            this.selectedInfo.text = `${data.name}\nPos: ${Math.round(data.x)},${Math.round(data.y)}\nEscala: ${data.scale.toFixed(2)}`;
         }
     }
 
@@ -554,7 +552,7 @@ export class AvatarAdjuster {
         original.scale = original.originalScale;
         
         if (this.selectedInfo) {
-            this.selectedInfo.text = `${original.name}\nPos: ${Math.round(original.x)},${Math.round(original.y)}\nEscala: ${original.scale.toFixed(1)}`;
+            this.selectedInfo.text = `${original.name}\nPos: ${Math.round(original.x)},${Math.round(original.y)}\nEscala: ${original.scale.toFixed(2)}`;
         }
     }
 
@@ -573,32 +571,36 @@ export class AvatarAdjuster {
         if (this.selectedPart) {
             const data = this.selectedPart.partData;
             if (this.selectedInfo) {
-                this.selectedInfo.text = `${data.name}\nPos: ${Math.round(data.x)},${Math.round(data.y)}\nEscala: ${data.scale.toFixed(1)}`;
+                this.selectedInfo.text = `${data.name}\nPos: ${Math.round(data.x)},${Math.round(data.y)}\nEscala: ${data.scale.toFixed(2)}`;
             }
         }
     }
 
-    getAdjustments() {
-        const parts = [];
-        
-        const scaleX = 180 / this.width;
-        const scaleY = 130 / this.height;
-        
-        for (const sprite of this.partSprites) {
-            if (sprite && sprite.partData) {
-                parts.push({
-                    index: sprite.partData.index,
-                    name: sprite.partData.name,
-                    x: sprite.x * scaleX,
-                    y: sprite.y * scaleY,
-                    scale: sprite.scale.x
-                });
-            }
+getAdjustments() {
+    const parts = [];
+    
+    const scaleX = this.AVATAR_WIDTH / this.width;
+    const scaleY = this.AVATAR_HEIGHT / this.height;
+    const SCALE_FACTOR = this.width / this.AVATAR_WIDTH;
+    
+    for (const sprite of this.partSprites) {
+        if (sprite && sprite.partData) {
+            // Convertir escala del ajustador a escala del avatar
+            const avatarScale = sprite.scale.x / SCALE_FACTOR;
+            
+            parts.push({
+                index: sprite.partData.index,
+                name: sprite.partData.name,
+                x: sprite.x * scaleX,
+                y: sprite.y * scaleY,
+                scale: avatarScale
+            });
         }
-        
-        console.log('Ajustes obtenidos (convertidos a avatar):', parts);
-        return { parts };
     }
+    
+    console.log('Ajustes obtenidos (convertidos a avatar):', parts);
+    return { parts };
+}
 
     save() {
         console.log('Guardando ajustes...');

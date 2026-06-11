@@ -1,82 +1,67 @@
-// src/core/ConfigManager.js
 export class ConfigManager {
     constructor() {
-        this.configKey = 'combina_config';
-        this.defaultConfig = {
-            combinaName: 'Mi Combina',
-            orientation: 'horizontal', // 'horizontal' o 'vertical'
-            parts: [],
-            createdAt: null,
-            lastModified: null
-        };
-    }
-
-    loadConfig() {
-        try {
-            const savedConfig = localStorage.getItem(this.configKey);
-            if (savedConfig) {
-                const config = JSON.parse(savedConfig);
-                console.log('Configuración cargada:', config.combinaName);
-                return config;
-            }
-        } catch (error) {
-            console.error('Error cargando configuración:', error);
-        }
-        return null;
+        this.storageKey = 'combina_config';
     }
 
     saveConfig(config) {
         try {
-            config.lastModified = new Date().toISOString();
-            localStorage.setItem(this.configKey, JSON.stringify(config));
-            console.log(' Configuración guardada:', config.combinaName);
-            return true;
+            const configToSave = this.sanitizeConfig(config);
+            const jsonString = JSON.stringify(configToSave);
+            localStorage.setItem(this.storageKey, jsonString);
+            console.log('Configuracion guardada correctamente');
         } catch (error) {
-            console.error('Error guardando configuración:', error);
-            return false;
+            console.error('Error guardando configuracion:', error);
         }
     }
 
-    clearConfig() {
-        localStorage.removeItem(this.configKey);
-        console.log('Configuración eliminada');
-    }
-
-    hasConfig() {
-        return localStorage.getItem(this.configKey) !== null;
-    }
-
-    exportConfig() {
-        const config = this.loadConfig();
+    sanitizeConfig(config) {
         if (!config) return null;
         
-        const dataStr = JSON.stringify(config, null, 2);
-        const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+        const safeConfig = {
+            combinaName: config.combinaName,
+            orientation: config.orientation,
+            theme: config.theme,
+            createdAt: config.createdAt,
+            lastModified: config.lastModified,
+            adjustments: { parts: [] },
+            parts: []
+        };
         
-        const exportFileDefaultName = `${config.combinaName}_config.json`;
+        if (config.adjustments && config.adjustments.parts) {
+            safeConfig.adjustments.parts = config.adjustments.parts.map(part => ({
+                index: part.index,
+                name: part.name,
+                x: part.x,
+                y: part.y,
+                scale: part.scale
+            }));
+        }
         
-        const linkElement = document.createElement('a');
-        linkElement.setAttribute('href', dataUri);
-        linkElement.setAttribute('download', exportFileDefaultName);
-        linkElement.click();
+        if (config.parts && Array.isArray(config.parts)) {
+            safeConfig.parts = config.parts.map(part => ({
+                id: part.id,
+                name: part.name,
+                variantsCount: part.variants ? part.variants.length : 0
+            }));
+        }
         
-        return true;
+        return safeConfig;
     }
 
-    importConfig(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                try {
-                    const config = JSON.parse(e.target.result);
-                    this.saveConfig(config);
-                    resolve(config);
-                } catch (error) {
-                    reject(error);
-                }
-            };
-            reader.onerror = reject;
-            reader.readAsText(file);
-        });
+    loadConfig() {
+        try {
+            const saved = localStorage.getItem(this.storageKey);
+            if (saved) {
+                return JSON.parse(saved);
+            }
+        } catch (error) {
+            console.error('Error cargando configuracion:', error);
+        }
+        return null;
+    }
+
+    clearConfig() {
+        localStorage.removeItem(this.storageKey);
+        console.log('Configuracion eliminada');
     }
 }

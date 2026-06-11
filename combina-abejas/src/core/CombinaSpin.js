@@ -1,4 +1,3 @@
-// src/core/CombinaSpin.js
 import * as PIXI from 'pixi.js';
 
 export class CombinaSpin {
@@ -15,7 +14,7 @@ export class CombinaSpin {
     async spin() {
         if (this.generator.isSpinning) return;
         
-        console.log(' INICIANDO GIRO');
+        console.log('INICIANDO GIRO');
         this.generator.isSpinning = true;
         this.generator.spinStartTime = Date.now();
         
@@ -28,7 +27,7 @@ export class CombinaSpin {
             slot.finalIndex = Math.floor(Math.random() * slot.parts.length);
             slot.spinSpeed = this.spinConfig.maxSpeed;
             
-            console.log(`Slot ${index} (${slot.type}): objetivo ${slot.finalIndex}`);
+            console.log(`Slot ${index} (${slot.type}): objetivo índice ${slot.finalIndex}`);
         });
         
         await this.animateSpin();
@@ -36,9 +35,8 @@ export class CombinaSpin {
         this.generator.isSpinning = false;
         this.updateCurrentCombination();
         this.generator.updateResultDisplay();
-        this.generator.celebrate();
         
-        console.log(' GIRO COMPLETADO');
+        console.log('GIRO COMPLETADO');
     }
 
     showSpinningMessage() {
@@ -46,7 +44,6 @@ export class CombinaSpin {
             this.generator.resultSprite.destroy();
         }
         
-        // Limpiar mensajes anteriores en el contenedor
         if (this.generator.resultContainer.children) {
             for (let i = this.generator.resultContainer.children.length - 1; i >= 3; i--) {
                 const child = this.generator.resultContainer.children[i];
@@ -65,7 +62,6 @@ export class CombinaSpin {
             fontWeight: 'bold'
         });
         
-        // Centrar en el contenedor del avatar (resultContainer)
         spinningMsg.x = (this.generator.resultContainer.width - spinningMsg.width) / 2;
         spinningMsg.y = (this.generator.resultContainer.height - spinningMsg.height) / 2;
         
@@ -88,7 +84,6 @@ export class CombinaSpin {
                     allFinished = false;
                     const slotProgress = Math.min(1, elapsed / (duration - this.spinConfig.spinDelay[index]));
                     
-                    // Velocidad variable
                     if (slotProgress < 0.2) {
                         slot.spinSpeed = this.spinConfig.maxSpeed * (slotProgress / 0.2);
                     } else if (slotProgress < 0.7) {
@@ -142,12 +137,14 @@ export class CombinaSpin {
     }
 
     updateCurrentCombination() {
+        // Guardar SOLO los índices numéricos, no los objetos completos
         this.generator.currentCombination = [];
         this.generator.slots.forEach((slot, index) => {
             if (slot.parts.length > 0 && slot.finalIndex !== null) {
                 const finalIdx = Math.min(slot.finalIndex, slot.parts.length - 1);
-                this.generator.currentCombination[index] = slot.parts[finalIdx];
-                console.log(`Slot ${index}: seleccionado ${slot.parts[finalIdx]?.name}`);
+                // Guardar el índice numérico
+                this.generator.currentCombination[index] = finalIdx;
+                console.log(`Slot ${index}: guardando índice ${finalIdx} (${slot.parts[finalIdx]?.name})`);
             } else {
                 this.generator.currentCombination[index] = null;
             }

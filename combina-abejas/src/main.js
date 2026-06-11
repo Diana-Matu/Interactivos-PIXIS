@@ -1,9 +1,9 @@
-// src/main.js
 import { Game } from './core/game.js';
 import './style.css';
 
 window.addEventListener('DOMContentLoaded', () => {
-    console.log(' CombinaCosas Universal');
+    console.log('🎰 CombinaBajas - Generador de Combinaciones');
+    console.log('💡 Para comenzar, importa un archivo JSON o usa la demo');
     
     try {
         const game = new Game('game-canvas');
@@ -21,10 +21,12 @@ window.addEventListener('DOMContentLoaded', () => {
         console.error('💥 Error fatal:', error);
         
         const canvas = document.getElementById('game-canvas');
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#ff0000';
-        ctx.font = '20px Arial';
-        ctx.fillText('Error al cargar el juego', 50, 50);
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#ff0000';
+            ctx.font = '20px Arial';
+            ctx.fillText('Error al cargar el juego', 50, 50);
+        }
     }
 });
 

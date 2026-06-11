@@ -1,4 +1,3 @@
-// src/core/CombinaUI.js
 import * as PIXI from 'pixi.js';
 import { DynamicSlotView } from '../views/DynamicSlotView.js';
 
@@ -10,7 +9,6 @@ export class CombinaUI {
         this.slotViews = [];
         this.currentTheme = this.config?.theme || 'dark';
         
-        // Definir colores según tema
         this.updateColors();
         
         console.log('CombinaUI constructor - config:', this.config);
@@ -27,16 +25,11 @@ export class CombinaUI {
                 textLight: 0x666666,
                 accent: 0xffd93d,
                 accentDark: 0xe6c422,
-                
-                // Colores de los slots para tema claro
                 slotBg: 0xffffff,
                 slotDark: 0xf0f0f0,
                 slotBorder: 0xcccccc,
-                
-                // Colores de la ventana del slot para tema claro
                 windowBg: 0xe0e0e0,
                 windowInner: 0xffffff,
-                
                 buttonPrimary: 0x4CAF50,
                 buttonSecondary: 0xFF9800,
                 buttonDanger: 0xff6b6b,
@@ -55,16 +48,11 @@ export class CombinaUI {
                 textLight: 0xcccccc,
                 accent: 0xffd93d,
                 accentDark: 0xcca800,
-                
-                // Colores de los slots para tema oscuro
                 slotBg: 0x2c3e50,
                 slotDark: 0x1e2b38,
                 slotBorder: 0x4a5b6b,
-                
-                // Colores de la ventana del slot para tema oscuro
                 windowBg: 0x0a0f14,
                 windowInner: 0x000000,
-                
                 buttonPrimary: 0x4CAF50,
                 buttonSecondary: 0xFF9800,
                 buttonDanger: 0xff6b6b,
@@ -79,22 +67,20 @@ export class CombinaUI {
     updateTheme(theme) {
         this.currentTheme = theme;
         this.updateColors();
-        // Recrear UI con nuevo tema
         this.createUI();
     }
     
     createUI() {
-        console.log(' Creando UI del Combina - Tema:', this.currentTheme);
+        console.log('Creando UI del Combina - Tema:', this.currentTheme);
         
         if (!this.config || !this.config.parts) {
-            console.error('Configuración no disponible en UI');
+            console.error('Configuracion no disponible en UI');
             return;
         }
         
         const width = this.app.screen.width;
         const height = this.app.screen.height;
         
-        // Aplicar color de fondo
         this.app.renderer.backgroundColor = this.colors.background;
         
         this.app.stage.removeChildren();
@@ -111,9 +97,9 @@ export class CombinaUI {
     }
 
     createTitle(width, height) {
-        console.log('Creando título:', this.config.combinaName);
+        console.log('Creando titulo:', this.config.combinaName);
         
-        const title = new PIXI.Text(` ${this.config.combinaName} `, {
+        const title = new PIXI.Text(' ' + this.config.combinaName + ' ', {
             fontFamily: 'Arial',
             fontSize: 28,
             fill: this.colors.text,
@@ -133,46 +119,49 @@ export class CombinaUI {
         const resultContainer = new PIXI.Container();
         
         const margin = 20;
-        const resultWidth = 200;
-        const resultHeight = 180;
+        const resultWidth = 220;
+        const resultHeight = 200;
         
         resultContainer.x = margin;
         resultContainer.y = 55;
         
-        // Fondo del marco (NUNCA eliminar)
         const bg = new PIXI.Graphics();
         bg.beginFill(this.colors.panel);
         bg.drawRoundedRect(0, 0, resultWidth, resultHeight, 12);
         bg.endFill();
         resultContainer.addChild(bg);
         
-        // Borde dorado (NUNCA eliminar)
         const border = new PIXI.Graphics();
         border.lineStyle(2, 0xffd93d);
         border.drawRoundedRect(2, 2, resultWidth - 4, resultHeight - 4, 10);
         resultContainer.addChild(border);
         
-        // Título
-        const title = new PIXI.Text(`✨ RESULTADO ✨`, {
+        const title = new PIXI.Text('RESULTADO', {
             fontFamily: 'Arial',
-            fontSize: 10,
+            fontSize: 11,
             fill: 0xffd93d,
             fontWeight: 'bold',
             align: 'center'
         });
         title.x = resultWidth / 2 - title.width / 2;
-        title.y = 5;
+        title.y = 6;
         resultContainer.addChild(title);
+        
+        const resultBg = new PIXI.Graphics();
+        resultBg.beginFill(this.currentTheme === 'dark' ? 0x1a1a2e : 0xe8e8e8);
+        resultBg.drawRoundedRect(8, 25, resultWidth - 16, resultHeight - 35, 8);
+        resultBg.endFill();
+        resultContainer.addChild(resultBg);
         
         this.generator.resultContainer = resultContainer;
         this.app.stage.addChild(resultContainer);
         
-        console.log(' Área de resultado creada');
+        console.log('Area de resultado creada con tamaño:', resultWidth, 'x', resultHeight);
     }
 
     createSlots() {
         if (!this.config.parts) {
-            console.error(' No hay partes para crear slots');
+            console.error('No hay partes para crear slots');
             return;
         }
         
@@ -186,13 +175,13 @@ export class CombinaUI {
         
         this.slotViews = [];
         
-        console.log(`Creando ${slotCount} slots - StartX: ${startX}, SlotY: ${slotY}`);
+        console.log('Creando ' + slotCount + ' slots - StartX: ' + startX + ', SlotY: ' + slotY);
         
         for (let i = 0; i < slotCount; i++) {
             const x = startX + i * (slotWidth + 20);
             const y = slotY;
             
-            console.log(`Slot ${i}: nombre=${this.config.parts[i].name}, x=${x}, y=${y}`);
+            console.log('Slot ' + i + ': nombre=' + this.config.parts[i].name + ', x=' + x + ', y=' + y);
             
             const slotView = new DynamicSlotView(
                 this.app, x, y,
@@ -218,7 +207,7 @@ export class CombinaUI {
         }
         
         this.generator.slotViews = this.slotViews;
-        console.log('Slots creados - Posición Y:', slotY);
+        console.log('Slots creados - Posicion Y:', slotY);
     }
 
     createLever() {
@@ -226,18 +215,17 @@ export class CombinaUI {
         const leverY = this.app.screen.height / 2;
         
         const leverBase = new PIXI.Graphics();
-        leverBase.beginFill(0xC2C0C0);  //  gris oscuro fijo
+        leverBase.beginFill(0xC2C0C0);
         leverBase.drawRect(leverX - 15, leverY - 80, 30, 160);
         leverBase.endFill();
         this.app.stage.addChild(leverBase);
         
         const leverHandle = new PIXI.Graphics();
-        leverHandle.beginFill(0xff3333);  //  rojo fijo
+        leverHandle.beginFill(0xff3333);
         leverHandle.drawCircle(leverX, leverY - 60, 20);
         leverHandle.endFill();
         this.app.stage.addChild(leverHandle);
         
-        //  brillo a la palanca
         const leverHighlight = new PIXI.Graphics();
         leverHighlight.beginFill(0xff6666, 0.5);
         leverHighlight.drawCircle(leverX - 3, leverY - 63, 6);
@@ -252,48 +240,34 @@ export class CombinaUI {
     }
 
     createButtons() {
-        console.log(' Creando botones...');
-        
-        const buttonY = this.app.screen.height - 60;
-        
-        // Guardar imagen
-        const saveImgBtn = this.createButton(this.app.screen.width - 140, buttonY, 120, 40, '💾 GUARDAR', this.colors.buttonPrimary);
-        saveImgBtn.on('pointerdown', () => this.generator.exportResult());
-        this.app.stage.addChild(saveImgBtn);
-        
-        // Ajustar avatar
-        const adjustBtn = this.createButton(this.app.screen.width - 280, buttonY, 130, 40, '⚙️ AJUSTAR', this.colors.buttonSecondary);
-        adjustBtn.on('pointerdown', () => this.generator.openAvatarAdjuster());
-        this.app.stage.addChild(adjustBtn);
-        
-        // Exportar configuración
-        const exportConfigBtn = this.createButton(this.app.screen.width - 430, buttonY, 120, 40, '📤 EXPORTAR', this.colors.buttonInfo);
-        exportConfigBtn.on('pointerdown', () => this.generator.exportConfig());
-        this.app.stage.addChild(exportConfigBtn);
-        
-        // Exportar paquete
-        const exportPackageBtn = this.createButton(this.app.screen.width - 570, buttonY, 140, 40, '📦 PAQUETE', this.colors.buttonPurple);
-        exportPackageBtn.on('pointerdown', () => this.generator.exportCombinaPackage());
-        this.app.stage.addChild(exportPackageBtn);
-        
-        // Nuevo combina
-        const newBtn = this.createButton(20, buttonY, 120, 40, '🔄 NUEVO', this.colors.buttonDanger);
-        newBtn.on('pointerdown', async () => {
-            this.generator.configManager.clearConfig();
-            this.app.stage.removeChildren();
-            await this.generator.initializeWithWizard();
-        });
-        this.app.stage.addChild(newBtn);
-        
-        // Botón importar
-        if (this.app.screen.width > 768) {
-            const importBtn = this.createButton(160, buttonY, 120, 40, '📥 IMPORTAR', this.colors.buttonSecondary);
-            importBtn.on('pointerdown', () => this.generator.importConfig());
-            this.app.stage.addChild(importBtn);
-        }
-        
-        console.log(' Botones creados');
-    }
+    console.log('Creando botones...');
+    
+    const buttonY = this.app.screen.height - 60;
+    
+    // Boton GUARDAR (exportar imagen del avatar)
+    const saveImgBtn = this.createButton(this.app.screen.width - 140, buttonY, 120, 40, 'GUARDAR', this.colors.buttonPrimary);
+    saveImgBtn.on('pointerdown', () => this.generator.exportResult());
+    this.app.stage.addChild(saveImgBtn);
+    
+    // Boton AJUSTAR (editar posicion/tamaño del avatar)
+    const adjustBtn = this.createButton(this.app.screen.width - 280, buttonY, 130, 40, 'AJUSTAR', this.colors.buttonSecondary);
+    adjustBtn.on('pointerdown', () => this.generator.openAvatarAdjuster());
+    this.app.stage.addChild(adjustBtn);
+    
+    // Boton PAQUETE (exportar ZIP completo)
+    const exportPackageBtn = this.createButton(this.app.screen.width - 430, buttonY, 140, 40, 'PAQUETE', this.colors.buttonPurple);
+    exportPackageBtn.on('pointerdown', () => this.generator.exportCombinaPackage());
+    this.app.stage.addChild(exportPackageBtn);
+    
+    // Boton NUEVO (recargar pagina para importar otro JSON)
+    const newBtn = this.createButton(20, buttonY, 120, 40, 'NUEVO', this.colors.buttonDanger);
+    newBtn.on('pointerdown', () => {
+        this.generator.resetToImport();
+    });
+    this.app.stage.addChild(newBtn);
+    
+    console.log('Botones creados: GUARDAR, AJUSTAR, PAQUETE, NUEVO');
+}
 
     createButton(x, y, width, height, text, color) {
         const button = new PIXI.Graphics();

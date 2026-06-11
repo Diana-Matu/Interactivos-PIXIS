@@ -1,8 +1,6 @@
-// src/core/AssetLoader.js
 export class AssetLoader {
     constructor() {
         this.cache = new Map();
-        this.targetSize = 24; // Tamaño uniforme para pixel art
     }
 
     async loadImage(file) {
@@ -17,11 +15,7 @@ export class AssetLoader {
             if (file instanceof File) {
                 const url = URL.createObjectURL(file);
                 img.src = url;
-                // Limpiar URL después de cargar
-                img.onload = () => {
-                    URL.revokeObjectURL(url);
-                    resolve(img);
-                };
+                img._blobUrl = url;
             } else {
                 img.src = file;
             }
@@ -37,76 +31,61 @@ export class AssetLoader {
         for (const file of validFiles) {
             try {
                 const img = await this.loadImage(file);
-                const pixelData = this.imageToPixelData(img);
+                
+                // Guardar la imagen original sin convertir a pixel art
+                const originalCanvas = document.createElement('canvas');
+                originalCanvas.width = img.width;
+                originalCanvas.height = img.height;
+                const originalCtx = originalCanvas.getContext('2d');
+                originalCtx.drawImage(img, 0, 0);
+                
                 images.push({
+                    id: Date.now() + Math.random(),
                     name: file.name.replace(/\.[^/.]+$/, ''),
                     originalFile: file,
-                    pixels: pixelData,
-                    baseColor: this.getDominantColor(pixelData),
-                    width: this.targetSize,
-                    height: this.targetSize
+                    originalImageElement: img,
+                    originalImageData: originalCanvas.toDataURL('image/png'),
+                    originalWidth: img.width,
+                    originalHeight: img.height,
+                    // Mantener para compatibilidad
+                    pixels: [],
+                    baseColor: '#888888'
                 });
-                console.log(` Cargada imagen: ${file.name}`);
+                console.log(`Cargada imagen original: ${file.name} (${img.width}x${img.height})`);
             } catch (error) {
-                console.error(` Error cargando ${file.name}:`, error);
+                console.error(`Error cargando ${file.name}:`, error);
             }
         }
         
         return images;
     }
 
-    imageToPixelData(image) {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        
-        canvas.width = this.targetSize;
-        canvas.height = this.targetSize;
-        
-        ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(image, 0, 0, this.targetSize, this.targetSize);
-        
-        const imageData = ctx.getImageData(0, 0, this.targetSize, this.targetSize);
-        const pixels = [];
-        
-        for (let y = 0; y < this.targetSize; y++) {
-            for (let x = 0; x < this.targetSize; x++) {
-                const index = (y * this.targetSize + x) * 4;
-                const r = imageData.data[index];
-                const g = imageData.data[index + 1];
-                const b = imageData.data[index + 2];
-                const a = imageData.data[index + 3];
-                
-                if (a > 128) {
-                    const color = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-                    pixels.push({ x, y, color });
-                }
-            }
+    async getImageBlob(variant) {
+        if (variant.originalFile instanceof File) {
+            return variant.originalFile;
         }
         
-        return pixels;
+        if (variant.originalImageData && variant.originalImageData.startsWith('data:')) {
+            return this.dataURLToBlob(variant.originalImageData);
+        }
+        
+        if (variant.originalImageElement && variant.originalImageElement.src) {
+            const response = await fetch(variant.originalImageElement.src);
+            return await response.blob();
+        }
+        
+        return null;
     }
 
-    getDominantColor(pixels) {
-        if (pixels.length === 0) return '#888888';
-        
-        const colorCount = new Map();
-        pixels.forEach(pixel => {
-            if (pixel.color) {
-                colorCount.set(pixel.color, (colorCount.get(pixel.color) || 0) + 1);
-            }
-        });
-        
-        let maxCount = 0;
-        let dominantColor = pixels[0].color;
-        
-        colorCount.forEach((count, color) => {
-            if (count > maxCount) {
-                maxCount = count;
-                dominantColor = color;
-            }
-        });
-        
-        return dominantColor;
+    dataURLToBlob(dataURL) {
+        const parts = dataURL.split(',');
+        const mime = parts[0].match(/:(.*?);/)[1];
+        const binary = atob(parts[1]);
+        const array = [];
+        for (let i = 0; i < binary.length; i++) {
+            array.push(binary.charCodeAt(i));
+        }
+        return new Blob([new Uint8Array(array)], { type: mime });
     }
 
     clearCache() {

@@ -31,6 +31,8 @@ export class DynamicSlotView {
         this.blurFilter = new PIXI.BlurFilter();
         this.blurFilter.blur = 0;
         
+        this.cachedTextures = [];
+        
         this.createSlotMachine();
     }
 
@@ -62,7 +64,7 @@ export class DynamicSlotView {
         const title = new PIXI.Text(this.partName, {
             fontFamily: 'Arial',
             fontSize: titleSize,
-            fill: this.colors.text,
+            fill: this.colors.accent,
             align: 'center',
             fontWeight: 'bold'
         });
@@ -92,7 +94,10 @@ export class DynamicSlotView {
         selectorLine.moveTo(20, this.selectorY);
         selectorLine.lineTo(this.width - 20, this.selectorY);
         this.container.addChild(selectorLine);
-        
+    }
+
+    setTextures(textures) {
+        this.cachedTextures = textures;
     }
 
     updateParts(parts, position, spinState) {
@@ -129,23 +134,32 @@ export class DynamicSlotView {
             
             if (!part) continue;
             
-            const texture = this.createPartTexture(part);
+            let texture = null;
+            if (this.cachedTextures && this.cachedTextures[partIndex]) {
+                texture = this.cachedTextures[partIndex];
+            } else if (part.originalImageElement) {
+                texture = PIXI.Texture.from(part.originalImageElement);
+            } else {
+                texture = this.createFallbackTexture();
+            }
+            
             const sprite = new PIXI.Sprite(texture);
             
             const yOffset = (position % spacing) - (offset * spacing);
             let spriteY = this.selectorY + yOffset - 50;
             
             if (spriteY >= minYLimit && spriteY <= maxYLimit) {
-                const baseScale = this.isMobile ? 2.5 : 3.0;
-                let scale = baseScale;
+                // Calcular escala manteniendo proporción original
+                const maxSlotSize = 120;
+                let scale = Math.min(maxSlotSize / texture.width, maxSlotSize / texture.height, 1.5);
                 let alpha = 0.7;
                 
                 if (Math.abs(offset) === 1) {
                     alpha = 0.5;
-                    scale = baseScale * 0.8;
+                    scale = scale * 0.8;
                 }
                 
-                sprite.x = this.width / 2.5;
+                sprite.x = this.width / 2;
                 sprite.y = spriteY;
                 sprite.scale.set(scale);
                 sprite.anchor.set(0.5);
@@ -154,22 +168,18 @@ export class DynamicSlotView {
                 if (spinState.spinning) {
                     sprite.filters = [this.blurFilter];
                     sprite.tint = 0xcccccc;
-                    
-                    if (speed > 40) {
-                        sprite.scale.y = scale * 1.2;
-                    }
                 } else {
                     sprite.filters = [];
                     sprite.tint = 0xffffff;
                     
                     if (offset === 0) {
-                        sprite.scale.set(baseScale * 1.1);
+                        sprite.scale.set(scale * 1.05);
                         sprite.alpha = 1.0;
                         
                         const glowSprite = new PIXI.Sprite(texture);
                         glowSprite.x = this.width / 2;
                         glowSprite.y = spriteY;
-                        glowSprite.scale.set(baseScale * 1.15);
+                        glowSprite.scale.set(scale * 1.1);
                         glowSprite.anchor.set(0.5);
                         glowSprite.alpha = 0.25;
                         glowSprite.tint = 0xffd93d;
@@ -184,27 +194,17 @@ export class DynamicSlotView {
         }
     }
 
-    createPartTexture(part) {
+    createFallbackTexture() {
         const canvas = document.createElement('canvas');
-        canvas.width = 32;
-        canvas.height = 32;
+        canvas.width = 64;
+        canvas.height = 64;
         const ctx = canvas.getContext('2d');
-        ctx.imageSmoothingEnabled = false;
-        
-        ctx.clearRect(0, 0, 32, 32);
-        
-        if (part.pixels && part.pixels.length > 0) {
-            const scale = 32 / 16;
-            part.pixels.forEach(pixel => {
-                const color = pixel.color || part.baseColor;
-                ctx.fillStyle = color;
-                ctx.fillRect(pixel.x * scale, pixel.y * scale, scale, scale);
-            });
-        } else {
-            ctx.fillStyle = part.baseColor || '#888888';
-            ctx.fillRect(4, 4, 24, 24);
-        }
-        
+        ctx.fillStyle = '#888888';
+        ctx.fillRect(0, 0, 64, 64);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 24px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('?', 32, 42);
         return PIXI.Texture.from(canvas);
     }
 }
