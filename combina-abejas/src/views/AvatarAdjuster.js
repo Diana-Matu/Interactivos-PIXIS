@@ -30,10 +30,18 @@ export class AvatarAdjuster {
         this.orientation = this.config.orientation || 'horizontal';
         this.theme = this.config.theme || 'dark';
         
-        // Escala base que usa el avatar
-        this.AVATAR_BASE_SCALE = 0.07;
+        // Tamaño del avatar original (coincide con assembleResult)
         this.AVATAR_WIDTH = 180;
         this.AVATAR_HEIGHT = 130;
+        
+        // Mismos valores que usa assembleResult
+        this.AVATAR_BASE_SCALE = 0.05;
+        this.START_X_AVATAR = 100;
+        this.SPACING_AVATAR = 2;
+        this.CENTER_Y_AVATAR = 75;
+        this.START_Y_VERTICAL_AVATAR = 15;
+        this.SPACING_Y_VERTICAL_AVATAR = 30;
+        this.CENTER_X_VERTICAL_AVATAR = 90;
         
         this.createFrame();
         this.loadParts();
@@ -236,6 +244,8 @@ export class AvatarAdjuster {
         button.y = y;
         button.eventMode = 'static';
         button.cursor = 'pointer';
+        button.zIndex = 100;
+        button.interactive = true;
         
         const label = new PIXI.Text(text, {
             fontFamily: 'Arial',
@@ -293,25 +303,20 @@ export class AvatarAdjuster {
             return;
         }
         
-        let startX, startY, spacingX, spacingY;
+        // Factores de escala entre el avatar (180x130) y el ajustador
+        const scaleX = this.width / this.AVATAR_WIDTH;
+        const scaleY = this.height / this.AVATAR_HEIGHT;
         
-        if (this.orientation === 'horizontal') {
-            startX = 60;
-            spacingX = 70;
-            startY = this.height / 2;
-            spacingY = 0;
-        } else {
-            startX = this.width / 2;
-            spacingX = 0;
-            startY = 40;
-            spacingY = 60;
-        }
+        // Convertir coordenadas del avatar a coordenadas del ajustador
+        const startX = this.START_X_AVATAR * scaleX;
+        const spacing = this.SPACING_AVATAR * scaleX;
+        const centerY = this.CENTER_Y_AVATAR * scaleY;
+        const startYVertical = this.START_Y_VERTICAL_AVATAR * scaleY;
+        const spacingY = this.SPACING_Y_VERTICAL_AVATAR * scaleY;
+        const centerXVertical = this.CENTER_X_VERTICAL_AVATAR * scaleX;
         
-        // Escala consistente con el avatar
-        // El avatar usa escala 0.2, el ajustador es más grande (500/180 ≈ 2.77)
-        // Aplicamos un factor visual para que no se vea demasiado grande
-        const SCALE_FACTOR = this.width / this.AVATAR_WIDTH;
-        const BASE_SCALE = this.AVATAR_BASE_SCALE * SCALE_FACTOR * 0.5;
+        console.log('Ajustador - scaleX:', scaleX, 'scaleY:', scaleY);
+        console.log('Ajustador - startX:', startX, 'spacing:', spacing, 'centerY:', centerY);
         
         for (let i = 0; i < validParts.length; i++) {
             const item = validParts[i];
@@ -325,19 +330,19 @@ export class AvatarAdjuster {
             let defaultX, defaultY, defaultScale;
             
             if (existingAdj && existingAdj.x !== undefined && existingAdj.y !== undefined) {
-                const scaleX = this.width / this.AVATAR_WIDTH;
-                const scaleY = this.height / this.AVATAR_HEIGHT;
+                // Convertir coordenadas guardadas (en espacio avatar) a espacio ajustador
                 defaultX = existingAdj.x * scaleX;
                 defaultY = existingAdj.y * scaleY;
-                defaultScale = existingAdj.scale * SCALE_FACTOR;
+                defaultScale = existingAdj.scale * scaleX;
             } else if (this.orientation === 'horizontal') {
-                defaultX = startX + i * spacingX;
-                defaultY = startY;
-                defaultScale = BASE_SCALE;
+                defaultX = startX + i * spacing;
+                defaultY = centerY;
+                defaultScale = this.AVATAR_BASE_SCALE * scaleX;
             } else {
-                defaultX = startX;
-                defaultY = startY + i * spacingY;
-                defaultScale = BASE_SCALE;
+                // Vertical
+                defaultX = centerXVertical;
+                defaultY = startYVertical + i * spacingY;
+                defaultScale = this.AVATAR_BASE_SCALE * scaleX;
             }
             
             sprite.x = defaultX;
@@ -346,6 +351,8 @@ export class AvatarAdjuster {
             sprite.anchor.set(0.5);
             sprite.eventMode = 'static';
             sprite.cursor = 'move';
+            sprite.zIndex = 50;
+            sprite.interactive = true;
             
             sprite.partData = {
                 index: item.index,
@@ -394,6 +401,9 @@ export class AvatarAdjuster {
         menu.drawRoundedRect(0, 0, 150, this.partNames.length * 30 + 10, 5);
         menu.x = this.container.x + this.width + 10;
         menu.y = this.container.y + 45;
+        menu.zIndex = 200;
+        menu.interactive = true;
+        menu.eventMode = 'static';
         
         for (let i = 0; i < this.partNames.length; i++) {
             const item = new PIXI.Text(this.partNames[i], {
@@ -405,6 +415,7 @@ export class AvatarAdjuster {
             item.y = 5 + i * 30;
             item.eventMode = 'static';
             item.cursor = 'pointer';
+            item.interactive = true;
             
             item.on('pointerdown', () => {
                 this.selectPart(i);
@@ -499,9 +510,9 @@ export class AvatarAdjuster {
     adjustSelectedSize(delta) {
         if (!this.selectedPart) return;
         
-        // Límites ajustados para escala más pequeña
-        const minScale = 0.02;
-        const maxScale = 0.35;
+        const scaleX = this.width / this.AVATAR_WIDTH;
+        const minScale = 0.02 * scaleX;
+        const maxScale = 0.4 * scaleX;
         
         const newScale = Math.max(minScale, Math.min(maxScale, this.selectedPart.scale.x + delta));
         this.selectedPart.scale.set(newScale);
@@ -576,31 +587,28 @@ export class AvatarAdjuster {
         }
     }
 
-getAdjustments() {
-    const parts = [];
-    
-    const scaleX = this.AVATAR_WIDTH / this.width;
-    const scaleY = this.AVATAR_HEIGHT / this.height;
-    const SCALE_FACTOR = this.width / this.AVATAR_WIDTH;
-    
-    for (const sprite of this.partSprites) {
-        if (sprite && sprite.partData) {
-            // Convertir escala del ajustador a escala del avatar
-            const avatarScale = sprite.scale.x / SCALE_FACTOR;
-            
-            parts.push({
-                index: sprite.partData.index,
-                name: sprite.partData.name,
-                x: sprite.x * scaleX,
-                y: sprite.y * scaleY,
-                scale: avatarScale
-            });
+    getAdjustments() {
+        const parts = [];
+        
+        const scaleXInv = this.AVATAR_WIDTH / this.width;
+        const scaleYInv = this.AVATAR_HEIGHT / this.height;
+        const SCALE_FACTOR_INV = this.AVATAR_WIDTH / this.width;
+        
+        for (const sprite of this.partSprites) {
+            if (sprite && sprite.partData) {
+                parts.push({
+                    index: sprite.partData.index,
+                    name: sprite.partData.name,
+                    x: sprite.x * scaleXInv,
+                    y: sprite.y * scaleYInv,
+                    scale: sprite.scale.x * SCALE_FACTOR_INV
+                });
+            }
         }
+        
+        console.log('Ajustes obtenidos (convertidos a avatar):', parts);
+        return { parts };
     }
-    
-    console.log('Ajustes obtenidos (convertidos a avatar):', parts);
-    return { parts };
-}
 
     save() {
         console.log('Guardando ajustes...');

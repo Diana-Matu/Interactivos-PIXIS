@@ -372,7 +372,7 @@ export class CombinaExport {
             border-radius: 3px;
         }
         #game-container::-webkit-scrollbar-thumb {
-            background: ${this.config.theme === 'dark' ? '#ffd93d' : '#ff9800'};
+            background: ${this.config.theme === 'dark' ? '#ece8d6' : '#747372'};
             border-radius: 3px;
         }
         canvas { 
@@ -416,7 +416,7 @@ export class CombinaExport {
         </div>
         <div class="scroll-indicator" id="scroll-indicator">← Desliza para ver más slots →</div>
     </div>
-    <div class="loading" id="loading">Cargando ${this.config.combinaName}... 🎰</div>
+    <div class="loading" id="loading">Cargando ${this.config.combinaName}... </div>
     <script>
         const CONFIG_DATA = ${JSON.stringify(configData, null, 2)};
         
@@ -499,6 +499,7 @@ export class CombinaExport {
                 const resultHeight = 120;
                 const resultY = 35;
                 
+                // Título en la parte superior izquierda
                 const title = new PIXI.Text(' ' + config.combinaName + ' ', {
                     fontFamily: 'Arial', fontSize: 16, fill: colors.text, fontWeight: 'bold',
                     dropShadow: true, dropShadowColor: config.theme === 'light' ? '#cccccc' : '#000000'
@@ -507,6 +508,7 @@ export class CombinaExport {
                 title.y = 8;
                 app.stage.addChild(title);
                 
+                // Avatar
                 resultContainer = new PIXI.Container();
                 resultContainer.x = margin;
                 resultContainer.y = resultY;
@@ -537,6 +539,7 @@ export class CombinaExport {
                 
                 app.stage.addChild(resultContainer);
                 
+                // Palanca (separada del avatar)
                 const leverX = resultContainer.x + resultWidth + 35;
                 const leverY = resultY + (resultHeight / 2);
                 
@@ -568,6 +571,7 @@ export class CombinaExport {
                 leverHandle.cursor = 'pointer';
                 leverHandle.on('pointerdown', spinMobile);
                 
+                // Botón guardar
                 const btnWidth = 80;
                 const btnHeight = 30;
                 const saveBtn = new PIXI.Graphics();
@@ -588,6 +592,7 @@ export class CombinaExport {
                 saveBtn.on('pointerdown', exportResult);
                 app.stage.addChild(saveBtn);
                 
+                // Slots (tamaño normal como en escritorio)
                 const slotCount = config.parts.length;
                 const slotWidth = 200;
                 const slotHeight = 400;
@@ -595,6 +600,7 @@ export class CombinaExport {
                 const slotY = resultY + resultHeight + 10;
                 const startX = margin;
                 
+                // Calcular el ancho total necesario
                 const totalSlotsWidth = slotCount * (slotWidth + slotSpacing);
                 const canvasMinWidth = startX + totalSlotsWidth + margin;
                 
@@ -694,8 +700,8 @@ export class CombinaExport {
                                 let spriteY = selectorY + yOffset - 50;
                                 
                                 if (spriteY >= minYLimit && spriteY <= maxYLimit) {
-                                    const maxSlotSize = 120;
-                                    let scale = Math.min(maxSlotSize / texture.width, maxSlotSize / texture.height, 1.5);
+                                    const maxSlotSize = 180;
+                                    let scale = Math.min(maxSlotSize / texture.width, maxSlotSize / texture.height, 2.2);
                                     let alpha = 0.7;
                                     if (Math.abs(offset) === 1) { alpha = 0.5; scale = scale * 0.8; }
                                     
@@ -711,7 +717,7 @@ export class CombinaExport {
                                     } else {
                                         sprite.tint = 0xffffff;
                                         if (offset === 0) {
-                                            sprite.scale.set(scale * 1.05);
+                                            sprite.scale.set(scale * 1.08);
                                             sprite.alpha = 1.0;
                                             const glowSprite = new PIXI.Sprite(texture);
                                             glowSprite.x = slotWidth / 2;
@@ -739,11 +745,36 @@ export class CombinaExport {
                 
                 updateResultDisplay();
                 
+                // Configurar scroll táctil mejorado
                 const gameContainer = document.getElementById('game-container');
                 if (gameContainer) {
                     gameContainer.style.overflowX = 'auto';
                     gameContainer.style.webkitOverflowScrolling = 'touch';
                     gameContainer.scrollLeft = 0;
+                    
+                    let startXScroll, scrollLeftStart;
+                    let isDraggingScroll = false;
+                    
+                    gameContainer.addEventListener('touchstart', (e) => {
+                        if (animationInProgress) return;
+                        isDraggingScroll = true;
+                        startXScroll = e.touches[0].pageX - gameContainer.offsetLeft;
+                        scrollLeftStart = gameContainer.scrollLeft;
+                        gameContainer.style.cursor = 'grabbing';
+                    });
+                    
+                    gameContainer.addEventListener('touchmove', (e) => {
+                        if (!isDraggingScroll || animationInProgress) return;
+                        e.preventDefault();
+                        const x = e.touches[0].pageX - gameContainer.offsetLeft;
+                        const walk = (x - startXScroll) * 1.8;
+                        gameContainer.scrollLeft = scrollLeftStart - walk;
+                    });
+                    
+                    gameContainer.addEventListener('touchend', () => {
+                        isDraggingScroll = false;
+                        gameContainer.style.cursor = 'grab';
+                    });
                 }
                 
                 const scrollIndicator = document.getElementById('scroll-indicator');
@@ -892,8 +923,8 @@ export class CombinaExport {
                                 let spriteY = selectorY + yOffset - 50;
                                 
                                 if (spriteY >= minYLimit && spriteY <= maxYLimit) {
-                                    const maxSlotSize = 120;
-                                    let scale = Math.min(maxSlotSize / texture.width, maxSlotSize / texture.height, 1.5);
+                                    const maxSlotSize = 180;
+                                    let scale = Math.min(maxSlotSize / texture.width, maxSlotSize / texture.height, 2.2);
                                     let alpha = 0.7;
                                     if (Math.abs(offset) === 1) { alpha = 0.5; scale = scale * 0.8; }
                                     
@@ -909,7 +940,7 @@ export class CombinaExport {
                                     } else {
                                         sprite.tint = 0xffffff;
                                         if (offset === 0) {
-                                            sprite.scale.set(scale * 1.05);
+                                            sprite.scale.set(scale * 1.08);
                                             sprite.alpha = 1.0;
                                             const glowSprite = new PIXI.Sprite(texture);
                                             glowSprite.x = slotWidth / 2;
@@ -994,174 +1025,296 @@ export class CombinaExport {
             }
         }
         
-        // ========== FUNCIÓN SPIN PARA MÓVIL ==========
-        function spinMobile() {
-            if (isSpinning || animationInProgress) { showMessage('Ya está girando'); return; }
-            isSpinning = true;
-            animationInProgress = true;
-            
-            if (leverHandle) {
-                leverHandle.y += 15;
-                setTimeout(() => { if (leverHandle) leverHandle.y -= 15; }, 150);
+// ========== FUNCIÓN SPIN PARA MÓVIL ==========
+function spinMobile() {
+    if (isSpinning || animationInProgress) { showMessage('Ya está girando'); return; }
+    isSpinning = true;
+    animationInProgress = true;
+    
+    if (leverHandle) {
+        leverHandle.y += 15;
+        setTimeout(() => { if (leverHandle) leverHandle.y -= 15; }, 150);
+    }
+    
+    const newCombination = [];
+    for (let i = 0; i < slots.length; i++) {
+        newCombination.push(Math.floor(Math.random() * slots[i].parts.length));
+    }
+    
+    const gameContainer = document.getElementById('game-container');
+    if (gameContainer) {
+        gameContainer.style.overflowX = 'hidden';
+    }
+    
+    const overlayLayer = new PIXI.Container();
+    overlayLayer.zIndex = 10000;
+    app.stage.sortableChildren = true;
+    app.stage.addChild(overlayLayer);
+    
+    const slotWidth = 200;
+    const slotHeight = 300;
+    const avatarRect = resultContainer ? resultContainer.getBounds() : { x: 20, y: 55 };
+    const targetX = avatarRect.x;
+    const targetY = avatarRect.y;
+    
+    const originalPositions = [];
+    const originalScales = [];
+    for (let i = 0; i < slotViews.length; i++) {
+        const container = slotViews[i].container;
+        originalPositions[i] = { x: container.x, y: container.y };
+        originalScales[i] = { x: container.scale?.x || 1, y: container.scale?.y || 1 };
+    }
+    
+    const FIXED_IMAGE_SIZE = 90;
+    const whiteColors = {
+        panel: 0xffffff, border: 0xdddddd, accent: 0xffd93d,
+        slotBg: 0xffffff, slotDark: 0xf5f5f5, slotBorder: 0xcccccc,
+        windowBg: 0xfafafa, windowInner: 0xffffff, text: 0x333333
+    };
+    
+    let currentSlotIndex = 0;
+    let currentClone = null;
+    let currentSpinInterval = null;
+    
+    function createConsistentSprite(texture) {
+        const sprite = new PIXI.Sprite(texture);
+        const scale = FIXED_IMAGE_SIZE / Math.max(sprite.width, sprite.height);
+        sprite.scale.set(scale);
+        sprite.anchor.set(0.5);
+        return sprite;
+    }
+    
+    function updateSpriteTexture(sprite, newTexture) {
+        const currentScale = sprite.scale.x;
+        sprite.texture = newTexture;
+        sprite.scale.set(currentScale);
+    }
+    
+    function cleanupClone() {
+        if (currentSpinInterval) { clearInterval(currentSpinInterval); currentSpinInterval = null; }
+        if (currentClone) { overlayLayer.removeChild(currentClone); currentClone = null; }
+    }
+    
+    function processNextSlot() {
+        if (currentSlotIndex >= slotViews.length) {
+            cleanupClone();
+            app.stage.removeChild(overlayLayer);
+            if (gameContainer) { gameContainer.style.overflowX = 'auto'; }
+            isSpinning = false;
+            animationInProgress = false;
+            updateResultDisplay();
+            showMessage(' Combinación generada! ');
+            if (resultSprite) {
+                resultSprite.alpha = 0.7;
+                setTimeout(() => { if (resultSprite) resultSprite.alpha = 1; }, 200);
             }
-            
-            const newCombination = [];
-            for (let i = 0; i < slots.length; i++) {
-                newCombination.push(Math.floor(Math.random() * slots[i].parts.length));
-            }
-            
-            const gameContainer = document.getElementById('game-container');
-            if (gameContainer) {
-                gameContainer.style.overflowX = 'hidden';
-            }
-            
-            const slotWidth = 200;
-            const slotHeight = 400;
-            
-            const avatarRect = resultContainer ? resultContainer.getBounds() : { x: 20, y: 55 };
-            const targetX = avatarRect.x;
-            const targetY = avatarRect.y;
-            
-            const originalPositions = [];
-            const originalScales = [];
-            
-            for (let i = 0; i < slotViews.length; i++) {
-                const container = slotViews[i].container;
-                originalPositions[i] = { x: container.x, y: container.y };
-                originalScales[i] = { x: container.scale?.x || 1, y: container.scale?.y || 1 };
-            }
-            
-            let currentSlotIndex = 0;
-            
-            function processNextSlot() {
-                if (currentSlotIndex >= slotViews.length) {
-                    if (gameContainer) {
-                        gameContainer.style.overflowX = 'auto';
-                    }
-                    isSpinning = false;
-                    animationInProgress = false;
-                    updateResultDisplay();
-                    showMessage('✨ Combinación generada! ✨');
-                    if (resultSprite) {
-                        resultSprite.alpha = 0.7;
-                        setTimeout(() => { if (resultSprite) resultSprite.alpha = 1; }, 200);
-                    }
-                    return;
-                }
-                
-                const slotView = slotViews[currentSlotIndex];
-                const slot = slots[currentSlotIndex];
-                const finalVariant = newCombination[currentSlotIndex];
-                const container = slotView.container;
-                
-                const startX = container.x;
-                const startY = container.y;
-                const startScaleX = container.scale?.x || 1;
-                const startScaleY = container.scale?.y || 1;
-                const targetScale = 2.2;
-                
-                let animProgress = 0;
-                const animDuration = 250;
-                let animStartTime = Date.now();
-                let isMovingToCenter = true;
-                let spinInterval = null;
-                let spinFrames = 0;
-                const totalSpinFrames = 20;
-                
-                function animate() {
-                    const now = Date.now();
-                    const elapsed = now - animStartTime;
-                    animProgress = Math.min(1, elapsed / animDuration);
-                    const easeOut = 1 - Math.pow(1 - animProgress, 3);
-                    
-                    if (isMovingToCenter) {
-                        const newX = startX + (targetX - startX) * easeOut;
-                        const newY = startY + (targetY - startY) * easeOut;
-                        const newScaleX = startScaleX + (targetScale - startScaleX) * easeOut;
-                        const newScaleY = startScaleY + (targetScale - startScaleY) * easeOut;
-                        
-                        container.x = newX;
-                        container.y = newY;
-                        container.scale.set(newScaleX, newScaleY);
-                        
-                        if (animProgress >= 1) {
-                            isMovingToCenter = false;
-                            spinFrames = 0;
-                            spinInterval = setInterval(function() {
-                                spinFrames++;
-                                const spinProgress = spinFrames / totalSpinFrames;
-                                const speed = Math.max(1, Math.floor(20 * (1 - spinProgress)));
-                                const currentIdx = Math.floor(Date.now() / (100 / speed)) % slot.parts.length;
-                                const position = (currentIdx * 80) % 2000;
-                                
-                                slotView.updateParts(slot.parts, position, { 
-                                    spinning: true, 
-                                    spinSpeed: speed * 5,
-                                    finalIndex: null
-                                });
-                                
-                                if (spinFrames >= totalSpinFrames) {
-                                    clearInterval(spinInterval);
-                                    
-                                    const finalPosition = (finalVariant * 80) % 2000;
-                                    slotView.updateParts(slot.parts, finalPosition, { 
-                                        spinning: false, 
-                                        spinSpeed: 0,
-                                        finalIndex: finalVariant
-                                    });
-                                    
-                                    currentCombination[currentSlotIndex] = finalVariant;
-                                    
-                                    const returnStartX = container.x;
-                                    const returnStartY = container.y;
-                                    const returnStartScaleX = container.scale?.x;
-                                    const returnStartScaleY = container.scale?.y;
-                                    const returnTargetX = originalPositions[currentSlotIndex].x;
-                                    const returnTargetY = originalPositions[currentSlotIndex].y;
-                                    const returnTargetScaleX = originalScales[currentSlotIndex].x;
-                                    const returnTargetScaleY = originalScales[currentSlotIndex].y;
-                                    
-                                    let returnProgress = 0;
-                                    const returnDuration = 250;
-                                    const returnStartTime = Date.now();
-                                    
-                                    function animateReturn() {
-                                        const nowTime = Date.now();
-                                        returnProgress = Math.min(1, (nowTime - returnStartTime) / returnDuration);
-                                        const easeOutReturn = 1 - Math.pow(1 - returnProgress, 3);
-                                        
-                                        const newX = returnStartX + (returnTargetX - returnStartX) * easeOutReturn;
-                                        const newY = returnStartY + (returnTargetY - returnStartY) * easeOutReturn;
-                                        const newScaleX = returnStartScaleX + (returnTargetScaleX - returnStartScaleX) * easeOutReturn;
-                                        const newScaleY = returnStartScaleY + (returnTargetScaleY - returnStartScaleY) * easeOutReturn;
-                                        
-                                        container.x = newX;
-                                        container.y = newY;
-                                        container.scale.set(newScaleX, newScaleY);
-                                        
-                                        if (returnProgress < 1) {
-                                            requestAnimationFrame(animateReturn);
-                                        } else {
-                                            currentSlotIndex++;
-                                            processNextSlot();
-                                        }
-                                    }
-                                    
-                                    requestAnimationFrame(animateReturn);
-                                }
-                            }, 40);
-                        } else {
-                            requestAnimationFrame(animate);
-                        }
-                    }
-                }
-                
-                requestAnimationFrame(animate);
-            }
-            
-            currentSlotIndex = 0;
-            processNextSlot();
+            return;
         }
+        
+        cleanupClone();
+        
+        const slotView = slotViews[currentSlotIndex];
+        const slot = slots[currentSlotIndex];
+        const finalVariant = newCombination[currentSlotIndex];
+        const originalContainer = slotView.container;
+        originalContainer.visible = false;
+        
+        const textures = [];
+        for (let i = 0; i < slot.parts.length; i++) {
+            const part = slot.parts[i];
+            if (part && part.originalImageElement) {
+                textures.push(PIXI.Texture.from(part.originalImageElement));
+            }
+        }
+        
+        if (textures.length === 0) {
+            originalContainer.visible = true;
+            currentSlotIndex++;
+            processNextSlot();
+            return;
+        }
+        
+        currentClone = new PIXI.Container();
+        
+        const shadow = new PIXI.Graphics();
+        shadow.beginFill(0x000000, 0.2);
+        shadow.drawRoundedRect(3, 3, slotWidth - 6, slotHeight - 6, 10);
+        shadow.endFill();
+        currentClone.addChild(shadow);
+        
+        const casing = new PIXI.Graphics();
+        casing.beginFill(whiteColors.slotBg);
+        casing.drawRoundedRect(0, 0, slotWidth, slotHeight, 12);
+        casing.endFill();
+        casing.lineStyle(2, whiteColors.slotBorder);
+        casing.drawRoundedRect(2, 2, slotWidth - 4, slotHeight - 4, 10);
+        currentClone.addChild(casing);
+        
+        const titlePlate = new PIXI.Graphics();
+        titlePlate.beginFill(whiteColors.slotDark);
+        titlePlate.drawRoundedRect(slotWidth/2 - 45, 5, 90, 22, 8);
+        titlePlate.endFill();
+        titlePlate.lineStyle(1, whiteColors.accent);
+        titlePlate.drawRoundedRect(slotWidth/2 - 45, 5, 90, 22, 8);
+        currentClone.addChild(titlePlate);
+        
+        const slotTitle = new PIXI.Text(slot.type, {
+            fontFamily: 'Arial', fontSize: 12, fill: whiteColors.accent, fontWeight: 'bold'
+        });
+        slotTitle.x = slotWidth / 2 - slotTitle.width / 2;
+        slotTitle.y = 9;
+        currentClone.addChild(slotTitle);
+        
+        const viewY = 45;
+        const viewHeight = slotHeight - 90;
+        const selectorY = viewY + viewHeight / 2;
+        
+        const windowFrame = new PIXI.Graphics();
+        windowFrame.lineStyle(2, whiteColors.slotBorder);
+        windowFrame.beginFill(whiteColors.windowBg, 0.9);
+        windowFrame.drawRoundedRect(10, viewY, slotWidth - 20, viewHeight, 8);
+        windowFrame.endFill();
+        currentClone.addChild(windowFrame);
+        
+        const windowBg = new PIXI.Graphics();
+        windowBg.beginFill(whiteColors.windowInner);
+        windowBg.drawRoundedRect(13, viewY + 3, slotWidth - 26, viewHeight - 6, 8);
+        windowBg.endFill();
+        currentClone.addChild(windowBg);
+        
+        const selectorLine = new PIXI.Graphics();
+        selectorLine.lineStyle(2, whiteColors.accent);
+        selectorLine.moveTo(20, selectorY);
+        selectorLine.lineTo(slotWidth - 20, selectorY);
+        currentClone.addChild(selectorLine);
+        
+        const rotatingSprites = [];
+        const spriteHeight = FIXED_IMAGE_SIZE;
+        const startYPositions = [-spriteHeight - 5, 0, spriteHeight + 5];
+        
+        for (let i = 0; i < 3; i++) {
+            const randomIndex = Math.floor(Math.random() * textures.length);
+            const sprite = createConsistentSprite(textures[randomIndex]);
+            sprite.x = slotWidth / 2;
+            sprite.y = selectorY + startYPositions[i];
+            currentClone.addChild(sprite);
+            rotatingSprites.push(sprite);
+        }
+        
+        currentClone.x = originalContainer.x;
+        currentClone.y = originalContainer.y;
+        overlayLayer.addChild(currentClone);
+        
+        const startX = currentClone.x;
+        const startY = currentClone.y;
+        const startScale = 1;
+        const targetScaleAnim = 2.0;
+        const targetXPos = targetX;
+        const targetYPos = targetY;
+        
+        let animProgress = 0;
+        const animDuration = 250;
+        let animStartTime = Date.now();
+        let phase = 'moveToCenter';
+        let spinFrames = 0;
+        const totalSpinFrames = 25;
+        let currentSpinPosition = 0;
+        const SPIN_SPEED = 12;
+        
+        function animate() {
+            const now = Date.now();
+            const elapsed = now - animStartTime;
+            animProgress = Math.min(1, elapsed / animDuration);
+            const easeOut = 1 - Math.pow(1 - animProgress, 3);
+            
+            if (phase === 'moveToCenter') {
+                const newX = startX + (targetXPos - startX) * easeOut;
+                const newY = startY + (targetYPos - startY) * easeOut;
+                const newScale = startScale + (targetScaleAnim - startScale) * easeOut;
+                currentClone.x = newX;
+                currentClone.y = newY;
+                currentClone.scale.set(newScale);
+                
+                if (animProgress >= 1) {
+                    phase = 'spinning';
+                    spinFrames = 0;
+                    currentSpinPosition = 0;
+                    currentSpinInterval = setInterval(function() {
+                        spinFrames++;
+                        currentSpinPosition += SPIN_SPEED;
+                        const spriteSpacing = FIXED_IMAGE_SIZE + 10;
+                        const halfViewHeight = viewHeight / 2;
+                        for (let i = 0; i < rotatingSprites.length; i++) {
+                            const sprite = rotatingSprites[i];
+                            let newY = selectorY + ((currentSpinPosition + (i - 1) * spriteSpacing) % spriteSpacing);
+                            if (newY > selectorY + halfViewHeight + 20) {
+                                newY = selectorY - halfViewHeight - 20;
+                                const randomTex = textures[Math.floor(Math.random() * textures.length)];
+                                updateSpriteTexture(sprite, randomTex);
+                            } else if (newY < selectorY - halfViewHeight - 20) {
+                                newY = selectorY + halfViewHeight + 20;
+                                const randomTex = textures[Math.floor(Math.random() * textures.length)];
+                                updateSpriteTexture(sprite, randomTex);
+                            }
+                            sprite.y = newY;
+                        }
+                        if (spinFrames >= totalSpinFrames) {
+                            clearInterval(currentSpinInterval);
+                            currentSpinInterval = null;
+                            const finalSprite = createConsistentSprite(textures[finalVariant]);
+                            finalSprite.x = slotWidth / 2;
+                            finalSprite.y = selectorY;
+                            rotatingSprites.forEach(s => currentClone.removeChild(s));
+                            currentClone.addChild(finalSprite);
+                            currentCombination[currentSlotIndex] = finalVariant;
+                            const finalPosition = (finalVariant * 80) % 2000;
+                            slotView.updateParts(slot.parts, finalPosition, { 
+                                spinning: false, spinSpeed: 0, finalIndex: finalVariant
+                            });
+                            phase = 'moveBack';
+                            const returnStartX = currentClone.x;
+                            const returnStartY = currentClone.y;
+                            const returnStartScale = currentClone.scale.x;
+                            const returnTargetX = originalPositions[currentSlotIndex].x;
+                            const returnTargetY = originalPositions[currentSlotIndex].y;
+                            const returnTargetScale = 1;
+                            const returnStartTime = Date.now();
+                            function animateReturn() {
+                                const nowTime = Date.now();
+                                const returnElapsed = nowTime - returnStartTime;
+                                const returnProgress = Math.min(1, returnElapsed / animDuration);
+                                const easeOutReturn = 1 - Math.pow(1 - returnProgress, 3);
+                                const newX = returnStartX + (returnTargetX - returnStartX) * easeOutReturn;
+                                const newY = returnStartY + (returnTargetY - returnStartY) * easeOutReturn;
+                                const newScale = returnStartScale + (returnTargetScale - returnStartScale) * easeOutReturn;
+                                currentClone.x = newX;
+                                currentClone.y = newY;
+                                currentClone.scale.set(newScale);
+                                if (returnProgress < 1) {
+                                    requestAnimationFrame(animateReturn);
+                                } else {
+                                    originalContainer.visible = true;
+                                    originalContainer.x = originalPositions[currentSlotIndex].x;
+                                    originalContainer.y = originalPositions[currentSlotIndex].y;
+                                    originalContainer.scale.set(originalScales[currentSlotIndex].x, originalScales[currentSlotIndex].y);
+                                    cleanupClone();
+                                    currentSlotIndex++;
+                                    processNextSlot();
+                                }
+                            }
+                            requestAnimationFrame(animateReturn);
+                            return;
+                        }
+                    }, 35);
+                } else {
+                    requestAnimationFrame(animate);
+                }
+            }
+        }
+        requestAnimationFrame(animate);
+    }
+    processNextSlot();
+}
         
         // ========== FUNCIÓN SPIN PARA ESCRITORIO ==========
         function spinDesktop() {
@@ -1204,7 +1357,7 @@ export class CombinaExport {
                 currentCombination = newCombination;
                 updateResultDisplay();
                 isSpinning = false;
-                showMessage('✨ Combinación generada! ✨');
+                showMessage(' Combinación generada! ');
                 if (resultSprite) {
                     resultSprite.alpha = 0.7;
                     setTimeout(() => { if (resultSprite) resultSprite.alpha = 1; }, 200);
@@ -1293,10 +1446,10 @@ export class CombinaExport {
             
             const adjustments = config.adjustments || { parts: [] };
             const orientation = config.orientation;
-            const BASE_SCALE = 0.07;
+            const BASE_SCALE = 0.05;  // <--- CAMBIADO DE 0.12 A 0.05
             
             if (orientation === 'horizontal') {
-                const startX = 15, spacing = 50, centerY = 65;
+                const startX = 100, spacing = 2, centerY = 75;
                 for (let i = 0; i < validParts.length; i++) {
                     const configPart = config.parts[validParts[i].slotIndex];
                     if (!configPart) continue;
@@ -1312,7 +1465,7 @@ export class CombinaExport {
                     }
                 }
             } else {
-                const centerX = 90, startY = 15, spacing = 35;
+                const centerX = 90, startY = 15, spacing = 30;
                 for (let i = 0; i < validParts.length; i++) {
                     const configPart = config.parts[validParts[i].slotIndex];
                     if (!configPart) continue;
@@ -1449,7 +1602,7 @@ console.log('CombinaBajas - ${this.config.combinaName}');`;
 
     generateReadme() {
         return `========================================
-${this.config.combinaName.toUpperCase()} - COMBINA
+${this.config.combinaName.toUpperCase()} - COMBINACOSAS
 ========================================
 
 INSTRUCCIONES:
@@ -1467,7 +1620,6 @@ SOBRE ESTE COMBINA:
 - Orientación: ${this.config.orientation === 'horizontal' ? 'Horizontal (← →)' : 'Vertical (↑ ↓)'}
 - Número de partes: ${this.config.parts.length}
 - Partes: ${this.config.parts.map(p => p.name).join(', ')}
-- Tema: ${this.config.theme === 'dark' ? 'Oscuro' : 'Claro'}
 
 ESTRUCTURA DEL PAQUETE:
 - index.html - Página principal

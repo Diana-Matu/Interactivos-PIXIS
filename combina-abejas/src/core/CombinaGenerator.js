@@ -323,12 +323,12 @@ export class CombinaGenerator {
         ctx.fillRect(0, 0, canvasWidth, canvasHeight);
         
         const savedAdjustments = adjustments.parts || [];
-        const AVATAR_BASE_SCALE = 0.12;
+        const AVATAR_BASE_SCALE = 0.05;
         
         if (orientation === 'horizontal') {
-            const startX = 15;
-            const spacing = 55;
-            const centerY = 65;
+            const startX = 100;
+            const spacing = 2;
+            const centerY = 75;
             
             for (let i = 0; i < validParts.length; i++) {
                 const slotIndex = validParts[i].slotIndex;
@@ -364,7 +364,7 @@ export class CombinaGenerator {
         } else {
             const centerX = 90;
             const startY = 15;
-            const spacing = 40;
+            const spacing = 30;
             
             for (let i = 0; i < validParts.length; i++) {
                 const slotIndex = validParts[i].slotIndex;
@@ -437,10 +437,11 @@ export class CombinaGenerator {
         mainUI.forEach(child => child.visible = false);
         
         const overlay = new PIXI.Graphics();
-        overlay.beginFill(0x000000, 0.85);
+        overlay.beginFill(0x000000, 0.7);
         overlay.drawRect(0, 0, this.app.screen.width, this.app.screen.height);
         overlay.endFill();
         overlay.eventMode = 'static';
+        overlay.interactiveChildren = false;
         this.app.stage.addChild(overlay);
         
         const panel = new PIXI.Graphics();

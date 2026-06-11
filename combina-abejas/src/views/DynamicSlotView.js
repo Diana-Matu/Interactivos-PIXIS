@@ -150,8 +150,8 @@ export class DynamicSlotView {
             
             if (spriteY >= minYLimit && spriteY <= maxYLimit) {
                 // Calcular escala manteniendo proporción original
-                const maxSlotSize = 120;
-                let scale = Math.min(maxSlotSize / texture.width, maxSlotSize / texture.height, 1.5);
+                const maxSlotSize = 180;
+                let scale = Math.min(maxSlotSize / texture.width, maxSlotSize / texture.height, 2.2);
                 let alpha = 0.7;
                 
                 if (Math.abs(offset) === 1) {
@@ -173,7 +173,7 @@ export class DynamicSlotView {
                     sprite.tint = 0xffffff;
                     
                     if (offset === 0) {
-                        sprite.scale.set(scale * 1.05);
+                        sprite.scale.set(scale * 1.08);
                         sprite.alpha = 1.0;
                         
                         const glowSprite = new PIXI.Sprite(texture);
