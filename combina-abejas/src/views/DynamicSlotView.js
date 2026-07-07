@@ -7,20 +7,16 @@ export class DynamicSlotView {
         this.y = y;
         this.width = width;
         this.height = height;
-        this.partName = partName;
+        this.partName = partName || 'Part';
         this.partIndex = partIndex;
         this.orientation = orientation;
         this.isMobile = isMobile;
+        this.isSpinning = false;
         
         this.colors = colors || {
-            panel: 0x2c3e50,
-            slotBg: 0x2c3e50,
-            slotDark: 0x1e2b38,
-            border: 0x4a5b6b,
-            accent: 0xffd93d,
-            text: 0xffffff,
-            windowBg: 0x0a0f14,
-            windowInner: 0x000000
+            slotBg: 0xffffff,
+            text: 0x2f3640,
+            accent: 0xff4757
         };
         
         this.container = new PIXI.Container();
@@ -28,107 +24,119 @@ export class DynamicSlotView {
         this.container.y = y;
         
         this.sprites = [];
+        this.cachedTextures = [];
+        
         this.blurFilter = new PIXI.BlurFilter();
         this.blurFilter.blur = 0;
-        
-        this.cachedTextures = [];
         
         this.createSlotMachine();
     }
 
     createSlotMachine() {
-        const titleSize = this.isMobile ? 10 : 14;
-        
-        const shadow = new PIXI.Graphics();
-        shadow.beginFill(0x000000, 0.3);
-        shadow.drawRoundedRect(3, 3, this.width - 6, this.height - 6, 10);
-        shadow.endFill();
-        this.container.addChild(shadow);
-        
-        const casing = new PIXI.Graphics();
-        casing.beginFill(this.colors.slotBg);
-        casing.drawRoundedRect(0, 0, this.width, this.height, 12);
-        casing.endFill();
-        casing.lineStyle(2, this.colors.border);
-        casing.drawRoundedRect(2, 2, this.width - 4, this.height - 4, 10);
-        this.container.addChild(casing);
-        
-        const titlePlate = new PIXI.Graphics();
-        titlePlate.beginFill(this.colors.slotDark);
-        titlePlate.drawRoundedRect(this.width/2 - 45, 5, 90, 22, 8);
-        titlePlate.endFill();
-        titlePlate.lineStyle(1, this.colors.accent);
-        titlePlate.drawRoundedRect(this.width/2 - 45, 5, 90, 22, 8);
-        this.container.addChild(titlePlate);
-        
-        const title = new PIXI.Text(this.partName, {
-            fontFamily: 'Arial',
-            fontSize: titleSize,
-            fill: this.colors.accent,
-            align: 'center',
-            fontWeight: 'bold'
-        });
-        title.x = this.width / 2 - title.width / 2;
-        title.y = 9;
-        this.container.addChild(title);
-        
-        this.viewY = 50;
-        this.viewHeight = this.height - 100;
-        this.selectorY = this.viewY + this.viewHeight / 2;
-        
-        const windowFrame = new PIXI.Graphics();
-        windowFrame.lineStyle(2, this.colors.border);
-        windowFrame.beginFill(this.colors.windowBg, 0.9);
-        windowFrame.drawRoundedRect(10, this.viewY, this.width - 20, this.viewHeight, 8);
-        windowFrame.endFill();
-        this.container.addChild(windowFrame);
-        
-        const windowBg = new PIXI.Graphics();
-        windowBg.beginFill(this.colors.windowInner);
-        windowBg.drawRoundedRect(13, this.viewY + 3, this.width - 26, this.viewHeight - 6, 8);
-        windowBg.endFill();
-        this.container.addChild(windowBg);
-        
-        const selectorLine = new PIXI.Graphics();
-        selectorLine.lineStyle(2, this.colors.accent);
-        selectorLine.moveTo(20, this.selectorY);
-        selectorLine.lineTo(this.width - 20, this.selectorY);
-        this.container.addChild(selectorLine);
-    }
+            this.viewY = 0;
+            this.viewHeight = this.height;
+            this.selectorY = this.viewHeight / 2;
+
+            // Máscara de recorte exacta para el rodillo
+            const mask = new PIXI.Graphics();
+            mask.beginFill(0xffffff);
+            mask.drawRect(0, 0, this.width, this.viewHeight);
+            mask.endFill();
+            this.container.addChild(mask);
+            
+            this.contentContainer = new PIXI.Container();
+            this.contentContainer.mask = mask;
+            this.container.addChild(this.contentContainer);
+
+            // RECUADRO INDIVIDUAL BLANCO
+            this.backgroundGraphics = new PIXI.Graphics();
+            this.backgroundGraphics.beginFill(0xffffff);
+            this.backgroundGraphics.drawRect(0, 0, this.width, this.viewHeight);
+            this.backgroundGraphics.endFill();
+            this.contentContainer.addChild(this.backgroundGraphics);
+
+            // CAPA DE REALISMO CILÍNDRICO CONTINUO
+            this.overlay3D = new PIXI.Graphics();
+            const steps = 24; 
+            
+            // Extendemos el ancho de la sombra un píxel a cada lado (-1 a width + 2)
+            // para asegurar que las sombras de slots vecinos se fusionen perfectamente.
+            for (let i = 0; i < steps; i++) {
+                const pct = i / steps;
+                const shadowAlpha = Math.pow(1 - pct, 2.3) * 0.88; // Sombra sutilmente más suave para fondo blanco completo
+                const segmentHeight = (this.viewHeight * 0.25) / steps;
+                
+                // Sombra Superior
+                this.overlay3D.beginFill(0x000000, shadowAlpha);
+                this.overlay3D.drawRect(-1, i * segmentHeight, this.width + 2, segmentHeight);
+                
+                // Sombra Inferior
+                this.overlay3D.drawRect(-1, this.viewHeight - (i * segmentHeight) - segmentHeight, this.width + 2, segmentHeight);
+                this.overlay3D.endFill();
+            }
+
+            // Brillo sutil de cristal curvado uniforme
+            this.overlay3D.beginFill(0x000000, 0.02);
+            this.overlay3D.drawRect(-1, this.viewHeight * 0.25, this.width + 2, this.viewHeight * 0.08);
+            this.overlay3D.drawRect(-1, this.viewHeight * 0.67, this.width + 2, this.viewHeight * 0.08);
+            this.overlay3D.endFill();
+
+            this.overlay3D.beginFill(0xffffff, 0.08);
+            this.overlay3D.drawRect(-1, this.viewHeight * 0.45, this.width + 2, 4);
+            this.overlay3D.endFill();
+
+            // Línea central de guía focal muy tenue
+            this.overlay3D.lineStyle(1, 0x000000, 0.03);
+            this.overlay3D.moveTo(-1, this.selectorY);
+            this.overlay3D.lineTo(this.width + 1, this.selectorY);
+
+            // Añadir la oclusión sobre el contenedor
+            this.container.addChild(this.overlay3D);
+
+            const placeholderText = new PIXI.Text('Esperando datos...', {
+                fontFamily: 'Arial', fontSize: 12, fill: 0x7f8c8d, align: 'center'
+            });
+            placeholderText.x = this.width / 2;
+            placeholderText.y = this.selectorY;
+            placeholderText.anchor.set(0.5);
+            this.contentContainer.addChild(placeholderText);
+            this.sprites.push(placeholderText);
+        }
 
     setTextures(textures) {
-        this.cachedTextures = textures;
+        this.cachedTextures = textures || [];
     }
 
     updateParts(parts, position, spinState) {
-        this.sprites.forEach(sprite => sprite.destroy());
+        this.isSpinning = spinState ? spinState.spinning : false;
+        
+        this.sprites.forEach(sprite => {
+            if (sprite && sprite.parent) sprite.parent.removeChild(sprite);
+            if (sprite) sprite.destroy();
+        });
         this.sprites = [];
 
         if (!parts || parts.length === 0) {
-            const noPartsText = new PIXI.Text('Sin partes', {
-                fontFamily: 'Arial',
-                fontSize: 14,
-                fill: 0xff0000,
-                align: 'center'
+            const noPartsText = new PIXI.Text('Cargar JSON', {
+                fontFamily: 'Arial', fontSize: 13, fill: this.colors.accent, align: 'center', fontWeight: 'bold'
             });
             noPartsText.x = this.width / 2;
             noPartsText.y = this.selectorY;
             noPartsText.anchor.set(0.5);
-            this.container.addChild(noPartsText);
+            this.contentContainer.addChild(noPartsText);
             this.sprites.push(noPartsText);
             return;
         }
 
-        const speed = Math.abs(spinState.spinSpeed || 0);
-        this.blurFilter.blur = spinState.spinning ? Math.min(4, speed / 12) : 0;
+        const speed = Math.abs(spinState?.spinSpeed || 0);
+        this.blurFilter.blur = this.isSpinning ? Math.min(5, speed / 10) : 0;
 
-        const spacing = 80;
+        const spacing = 90;
+        const radius = this.viewHeight * 0.52;
         const centerIndex = Math.floor(position / spacing) % parts.length;
-        
-        const minYLimit = this.viewY + 15;
-        const maxYLimit = this.viewY + this.viewHeight - 15;
-        
-        for (let offset = -1; offset <= 1; offset++) {
+        const offsetRange = this.isMobile ? [-3, -2, -1, 0, 1, 2, 3] : [-4, -3, -2, -1, 0, 1, 2, 3, 4];
+
+        for (let offset of offsetRange) {
             const partIndex = (centerIndex + offset + parts.length) % parts.length;
             const part = parts[partIndex];
             
@@ -144,53 +152,50 @@ export class DynamicSlotView {
             }
             
             const sprite = new PIXI.Sprite(texture);
-            
             const yOffset = (position % spacing) - (offset * spacing);
-            let spriteY = this.selectorY + yOffset - 50;
+            const angle = (yOffset / radius);
+
+            if (Math.abs(angle) > Math.PI / 2) continue;
+
+            // Proyección matemática sobre la curvatura del rodillo
+            const spriteY = this.selectorY + Math.sin(angle) * radius;
+            const zScale = Math.cos(angle);
             
-            if (spriteY >= minYLimit && spriteY <= maxYLimit) {
-                // Calcular escala manteniendo proporción original
-                const maxSlotSize = 180;
-                let scale = Math.min(maxSlotSize / texture.width, maxSlotSize / texture.height, 2.2);
-                let alpha = 0.7;
-                
-                if (Math.abs(offset) === 1) {
-                    alpha = 0.5;
-                    scale = scale * 0.8;
+            // =========================================================================
+            // CONTROL DE TAMAÑO DE LAS IMÁGENES
+            // Incrementa estos valores para darles más presencia dentro del rodillo blanco.
+            // =========================================================================
+            const maxSlotSize = this.isMobile ? 85 : 195; // Máximo en píxeles (Antes: 55 / 120)
+            const baseScale = Math.min(
+                maxSlotSize / texture.width,
+                maxSlotSize / texture.height,
+                this.isMobile ? 0.70 : 1.25 // Factor multiplicador de escala base (Antes: 0.45 / 0.85)
+            );
+            
+            // Compresión y escalamiento esférico en los extremos superiores e inferiores
+            let scaleY = baseScale * zScale;
+            let scaleX = baseScale * (1 - Math.abs(angle) * 0.08);
+            let alpha = Math.pow(zScale, 1.5);
+
+            if (this.isSpinning) {
+                sprite.filters = [this.blurFilter];
+                alpha *= 0.8;
+            } else {
+                sprite.filters = [];
+                if (offset === 0 && Math.abs(yOffset) < 15) {
+                    alpha = 1.0;
                 }
-                
-                sprite.x = this.width / 2;
-                sprite.y = spriteY;
-                sprite.scale.set(scale);
-                sprite.anchor.set(0.5);
-                sprite.alpha = alpha;
-                
-                if (spinState.spinning) {
-                    sprite.filters = [this.blurFilter];
-                    sprite.tint = 0xcccccc;
-                } else {
-                    sprite.filters = [];
-                    sprite.tint = 0xffffff;
-                    
-                    if (offset === 0) {
-                        sprite.scale.set(scale * 1.08);
-                        sprite.alpha = 1.0;
-                        
-                        const glowSprite = new PIXI.Sprite(texture);
-                        glowSprite.x = this.width / 2;
-                        glowSprite.y = spriteY;
-                        glowSprite.scale.set(scale * 1.1);
-                        glowSprite.anchor.set(0.5);
-                        glowSprite.alpha = 0.25;
-                        glowSprite.tint = 0xffd93d;
-                        this.container.addChild(glowSprite);
-                        this.sprites.push(glowSprite);
-                    }
-                }
-                
-                this.container.addChild(sprite);
-                this.sprites.push(sprite);
             }
+
+            sprite.x = this.width / 2;
+            sprite.y = spriteY;
+            sprite.scale.set(scaleX, scaleY);
+            sprite.anchor.set(0.5);
+            sprite.alpha = Math.max(0, Math.min(1, alpha));
+            
+            // Insertar detrás de la capa fija de oclusión 3D
+            this.contentContainer.addChild(sprite);
+            this.sprites.push(sprite);
         }
     }
 
@@ -199,12 +204,13 @@ export class DynamicSlotView {
         canvas.width = 64;
         canvas.height = 64;
         const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#888888';
+        ctx.fillStyle = '#f5f6fa';
         ctx.fillRect(0, 0, 64, 64);
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 24px Arial';
+        ctx.fillStyle = '#7f8c8d';
+        ctx.font = 'bold 20px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText('?', 32, 42);
+        ctx.textBaseline = 'middle';
+        ctx.fillText('?', 32, 32);
         return PIXI.Texture.from(canvas);
     }
 }

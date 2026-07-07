@@ -1,5 +1,6 @@
 import * as PIXI from 'pixi.js';
 import { DynamicSlotView } from '../views/DynamicSlotView.js';
+import { UILever } from '../views/uiLever.js';
 
 export class CombinaUI {
     constructor(generator) {
@@ -8,60 +9,34 @@ export class CombinaUI {
         this.config = generator.config;
         this.slotViews = [];
         this.currentTheme = this.config?.theme || 'dark';
+        this.cylinderContainer = null;
+        this.backgroundElements = [];
         
         this.updateColors();
-        
-        console.log('CombinaUI constructor - config:', this.config);
     }
 
     updateColors() {
-        if (this.currentTheme === 'light') {
-            this.colors = {
-                background: 0xf5f5f5,
-                panel: 0xffffff,
-                card: 0xfafafa,
-                border: 0xdddddd,
-                text: 0x333333,
-                textLight: 0x666666,
-                accent: 0xffd93d,
-                accentDark: 0xe6c422,
-                slotBg: 0xffffff,
-                slotDark: 0xf0f0f0,
-                slotBorder: 0xcccccc,
-                windowBg: 0xe0e0e0,
-                windowInner: 0xffffff,
-                buttonPrimary: 0x4CAF50,
-                buttonSecondary: 0xFF9800,
-                buttonDanger: 0xff6b6b,
-                buttonInfo: 0x2196F3,
-                buttonPurple: 0x9C27B0,
-                leverBase: 0xcccccc,
-                leverHandle: 0xffd93d
-            };
-        } else {
-            this.colors = {
-                background: 0x0f1219,
-                panel: 0x2c3e50,
-                card: 0x1e2b38,
-                border: 0x4a5b6b,
-                text: 0xffffff,
-                textLight: 0xcccccc,
-                accent: 0xffd93d,
-                accentDark: 0xcca800,
-                slotBg: 0x2c3e50,
-                slotDark: 0x1e2b38,
-                slotBorder: 0x4a5b6b,
-                windowBg: 0x0a0f14,
-                windowInner: 0x000000,
-                buttonPrimary: 0x4CAF50,
-                buttonSecondary: 0xFF9800,
-                buttonDanger: 0xff6b6b,
-                buttonInfo: 0x2196F3,
-                buttonPurple: 0x9C27B0,
-                leverBase: 0x4a5b6b,
-                leverHandle: 0xffd93d
-            };
-        }
+        // Paleta refinada: Chasis gris, fondos de rodillos blancos impecables
+        this.colors = {
+            background: 0x061c12, 
+            panel: 0x2d3436, 
+            card: 0x3a4143, 
+            border: 0x636e72,
+            text: 0xffffff, 
+            textLight: 0xdfe6e9, 
+            accent: 0xffd93d, 
+            accentDark: 0xcca800,
+            slotBg: 0xffffff, 
+            slotDark: 0xf5f6fa, 
+            slotBorder: 0xb2bec3, 
+            windowBg: 0x1e252b,
+            windowInner: 0xffffff, 
+            buttonPrimary: 0x2ed573, 
+            buttonSecondary: 0xffa502,
+            buttonDanger: 0xff4757, 
+            buttonInfo: 0x1e90ff, 
+            buttonPurple: 0x9c27b0
+        };
     }
 
     updateTheme(theme) {
@@ -71,117 +46,193 @@ export class CombinaUI {
     }
     
     createUI() {
-        console.log('Creando UI del Combina - Tema:', this.currentTheme);
-        
-        if (!this.config || !this.config.parts) {
-            console.error('Configuracion no disponible en UI');
-            return;
-        }
+        if (!this.config || !this.config.parts) return;
         
         const width = this.app.screen.width;
         const height = this.app.screen.height;
         
-        this.app.renderer.backgroundColor = this.colors.background;
-        
         this.app.stage.removeChildren();
+        this.backgroundElements = [];
         
+        this.createCasinoBackground(width, height);
         this.createTitle(width, height);
         this.createResultArea();
+        this.createCylinder();
         this.createSlots();
         this.createLever();
         this.createButtons();
         
         this.generator.updateResultDisplay();
+    }
+
+    createCasinoBackground(width, height) {
+        // Generación de textura de degradado lineal (Verde Oscuro -> Negro)
+        const canvas = document.createElement('canvas');
+        canvas.width = 1;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        const gradient = ctx.createLinearGradient(0, 0, 0, height);
+        gradient.addColorStop(0, '#0a2f1d');
+        gradient.addColorStop(0.4, '#06170f');
+        gradient.addColorStop(1, '#020503');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 1, height);
+
+        const bgTexture = PIXI.Texture.from(canvas);
+        const bgSprite = new PIXI.Sprite(bgTexture);
+        bgSprite.width = width;
+        bgSprite.height = height;
         
-        console.log('UI creada correctamente');
+        this.app.stage.addChild(bgSprite);
+        this.backgroundElements.push(bgSprite);
+        
+        // Líneas sutiles de corte de mesa
+        const tableLine = new PIXI.Graphics();
+        tableLine.lineStyle(1, 0xffffff, 0.03);
+        tableLine.moveTo(0, height * 0.15);
+        tableLine.lineTo(width, height * 0.15);
+        tableLine.moveTo(0, height * 0.85);
+        tableLine.lineTo(width, height * 0.85);
+        this.app.stage.addChild(tableLine);
+        this.backgroundElements.push(tableLine);
     }
 
     createTitle(width, height) {
-        console.log('Creando titulo:', this.config.combinaName);
-        
-        const title = new PIXI.Text(' ' + this.config.combinaName + ' ', {
-            fontFamily: 'Arial',
-            fontSize: 28,
-            fill: this.colors.text,
-            fontWeight: 'bold',
-            dropShadow: true,
-            dropShadowColor: this.currentTheme === 'light' ? '#cccccc' : '#000000'
-        });
-        title.x = width / 2 - title.width / 2;
-        title.y = 15;
-        this.app.stage.addChild(title);
-    }
+            const titleBg = new PIXI.Graphics();
+            titleBg.beginFill(0x000000, 0.4);
+            titleBg.drawRoundedRect(width / 2 - 180, 8, 360, 45, 8);
+            titleBg.endFill();
+            titleBg.lineStyle(1, 0xffffff, 0.1);
+            titleBg.drawRoundedRect(width / 2 - 180, 8, 360, 45, 8);
+            this.app.stage.addChild(titleBg);
+            
+            const title = new PIXI.Text(' ' + this.config.combinaName + ' ', {
+                fontFamily: 'Arial',
+                fontSize: 26,
+                fill: 0xffd93d, // Amarillo vibrante de la paleta
+                fontWeight: 'bold',
+                dropShadow: true,
+                dropShadowColor: '#000000',
+                dropShadowBlur: 6,
+                dropShadowDistance: 3,
+                dropShadowAngle: Math.PI / 6
+            });
+            title.x = width / 2 - title.width / 2;
+            title.y = 16;
+            this.app.stage.addChild(title);
+        }
 
     createResultArea() {
-        const width = this.app.screen.width;
-        const height = this.app.screen.height;
-        
         const resultContainer = new PIXI.Container();
-        
-        const margin = 20;
         const resultWidth = 220;
         const resultHeight = 200;
         
-        resultContainer.x = margin;
-        resultContainer.y = 55;
+        resultContainer.x = 20;
+        resultContainer.y = 60;
         
         const bg = new PIXI.Graphics();
-        bg.beginFill(this.colors.panel);
-        bg.drawRoundedRect(0, 0, resultWidth, resultHeight, 12);
+        bg.beginFill(0x1e252b);
+        bg.drawRoundedRect(0, 0, resultWidth, resultHeight, 8);
         bg.endFill();
+        bg.lineStyle(2, 0x4f5d65, 1);
+        bg.drawRoundedRect(0, 0, resultWidth, resultHeight, 8);
         resultContainer.addChild(bg);
-        
-        const border = new PIXI.Graphics();
-        border.lineStyle(2, 0xffd93d);
-        border.drawRoundedRect(2, 2, resultWidth - 4, resultHeight - 4, 10);
-        resultContainer.addChild(border);
         
         const title = new PIXI.Text('RESULTADO', {
             fontFamily: 'Arial',
             fontSize: 11,
-            fill: 0xffd93d,
-            fontWeight: 'bold',
-            align: 'center'
+            fill: 0xdfe6e9,
+            fontWeight: 'bold'
         });
         title.x = resultWidth / 2 - title.width / 2;
-        title.y = 6;
+        title.y = 8;
         resultContainer.addChild(title);
         
         const resultBg = new PIXI.Graphics();
-        resultBg.beginFill(this.currentTheme === 'dark' ? 0x1a1a2e : 0xe8e8e8);
-        resultBg.drawRoundedRect(8, 25, resultWidth - 16, resultHeight - 35, 8);
+        resultBg.beginFill(0xffffff);
+        resultBg.drawRoundedRect(8, 28, resultWidth - 16, resultHeight - 38, 4);
         resultBg.endFill();
         resultContainer.addChild(resultBg);
         
         this.generator.resultContainer = resultContainer;
         this.app.stage.addChild(resultContainer);
-        
-        console.log('Area de resultado creada con tamaño:', resultWidth, 'x', resultHeight);
     }
 
-    createSlots() {
-        if (!this.config.parts) {
-            console.error('No hay partes para crear slots');
-            return;
+    createCylinder() {
+            this.cylinderContainer = new PIXI.Container();
+            
+            const slotCount = this.config.parts.length;
+            const slotWidth = 200;
+            const slotHeight = 400;
+            const slotSpacing = 6;
+            const totalSlotsWidth = slotCount * slotWidth + (slotCount - 1) * slotSpacing;
+            
+            const paddingH = 20;
+            const paddingV = 12;
+            
+            const cylinderWidth = totalSlotsWidth + paddingH * 2;
+            const cylinderHeight = slotHeight + paddingV * 2;
+            
+            const startX = (this.app.screen.width - cylinderWidth) / 2;
+            
+            const startY = 300 - paddingV; 
+            
+            this.cylinderContainer.x = startX;
+            this.cylinderContainer.y = startY;
+            
+            
+            
+            // CHASIS EXTERIOR GRIS (Mate industrial)
+            const chassisBg = new PIXI.Graphics();
+            chassisBg.beginFill(0x353b48);
+            chassisBg.drawRoundedRect(0, 0, cylinderWidth, cylinderHeight, 12);
+            chassisBg.endFill();
+            
+            // Bisel metálico exterior
+            chassisBg.lineStyle(3, 0x718093, 1);
+            chassisBg.drawRoundedRect(1, 1, cylinderWidth - 2, cylinderHeight - 2, 11);
+            chassisBg.lineStyle(1, 0x2f3640, 1);
+            chassisBg.drawRoundedRect(3, 3, cylinderWidth - 6, cylinderHeight - 6, 9);
+            this.cylinderContainer.addChild(chassisBg);
+
+            // Ventana de corte interna para los rodillos
+            const windowInner = new PIXI.Graphics();
+            windowInner.beginFill(0xffffff);
+            windowInner.drawRect(paddingH, paddingV, totalSlotsWidth, slotHeight);
+            windowInner.endFill();
+            this.cylinderContainer.addChild(windowInner);
+            
+            // Divisiones o costillas mecánicas grises entre slots
+            const dividers = new PIXI.Graphics();
+            for (let i = 1; i < slotCount; i++) {
+                const divX = paddingH + i * slotWidth + (i - 1) * slotSpacing + (slotSpacing / 2);
+                dividers.beginFill(0x2f3640);
+                dividers.drawRect(divX - 2, paddingV, 4, slotHeight);
+                dividers.endFill();
+                dividers.lineStyle(1, 0x718093, 0.7);
+                dividers.moveTo(divX + 2, paddingV);
+                dividers.lineTo(divX + 2, paddingV + slotHeight);
+            }
+            this.cylinderContainer.addChild(dividers);
+
+            this.app.stage.addChild(this.cylinderContainer);
         }
+
+    createSlots() {
+        if (!this.config.parts) return;
         
         const slotCount = this.config.parts.length;
         const slotWidth = 200;
         const slotHeight = 400;
-        
-        const totalWidth = slotWidth * slotCount + (slotCount - 1) * 20;
-        const startX = (this.app.screen.width - totalWidth) / 2;
-        const slotY = 250;
+        const slotSpacing = 6;
+        const paddingH = 20;
+        const paddingV = 12;
         
         this.slotViews = [];
         
-        console.log('Creando ' + slotCount + ' slots - StartX: ' + startX + ', SlotY: ' + slotY);
-        
         for (let i = 0; i < slotCount; i++) {
-            const x = startX + i * (slotWidth + 20);
-            const y = slotY;
-            
-            console.log('Slot ' + i + ': nombre=' + this.config.parts[i].name + ', x=' + x + ', y=' + y);
+            const x = paddingH + i * (slotWidth + slotSpacing);
+            const y = paddingV;
             
             const slotView = new DynamicSlotView(
                 this.app, x, y,
@@ -193,7 +244,7 @@ export class CombinaUI {
                 this.colors
             );
             
-            this.app.stage.addChild(slotView.container);
+            this.cylinderContainer.addChild(slotView.container);
             this.slotViews.push(slotView);
             
             const slotData = this.generator.slots[i];
@@ -201,109 +252,80 @@ export class CombinaUI {
                 slotView.updateParts(
                     slotData.parts,
                     0,
-                    { spinning: false, spinSpeed: 0, finalIndex: null }
+                    { spinning: false, spinSpeed: 0, finalIndex: null, glowIntensity: 0 }
                 );
             }
         }
         
         this.generator.slotViews = this.slotViews;
-        console.log('Slots creados - Posicion Y:', slotY);
+    }
+
+    updateCylinderLights(spinning) {
+        // Función vacía decorativa obligatoria para compatibilidad con CombinaSpin
     }
 
     createLever() {
-        const leverX = this.app.screen.width - 80;
-        const leverY = this.app.screen.height / 2;
+        const leverX = this.app.screen.width - 85;
+        const leverY = this.app.screen.height / 2 + 15;
         
-        const leverBase = new PIXI.Graphics();
-        leverBase.beginFill(0xC2C0C0);
-        leverBase.drawRect(leverX - 15, leverY - 80, 30, 160);
-        leverBase.endFill();
-        this.app.stage.addChild(leverBase);
+        const lever = new UILever(leverX, leverY, 1.4, () => {
+            this.generator.spin();
+        });
         
-        const leverHandle = new PIXI.Graphics();
-        leverHandle.beginFill(0xff3333);
-        leverHandle.drawCircle(leverX, leverY - 60, 20);
-        leverHandle.endFill();
-        this.app.stage.addChild(leverHandle);
-        
-        const leverHighlight = new PIXI.Graphics();
-        leverHighlight.beginFill(0xff6666, 0.5);
-        leverHighlight.drawCircle(leverX - 3, leverY - 63, 6);
-        leverHighlight.endFill();
-        this.app.stage.addChild(leverHighlight);
-        
-        leverHandle.eventMode = 'static';
-        leverHandle.cursor = 'pointer';
-        leverHandle.on('pointerdown', () => this.generator.spin());
-        
-        this.generator.lever = leverHandle;
+        this.app.stage.addChild(lever);
+        this.generator.lever = lever;
     }
 
     createButtons() {
-    console.log('Creando botones...');
-    
-    const buttonY = this.app.screen.height - 60;
-    
-    // Boton GUARDAR (exportar imagen del avatar)
-    const saveImgBtn = this.createButton(this.app.screen.width - 140, buttonY, 120, 40, 'GUARDAR', this.colors.buttonPrimary);
-    saveImgBtn.on('pointerdown', () => this.generator.exportResult());
-    this.app.stage.addChild(saveImgBtn);
-    
-    // Boton AJUSTAR (editar posicion/tamaño del avatar)
-    const adjustBtn = this.createButton(this.app.screen.width - 280, buttonY, 130, 40, 'AJUSTAR', this.colors.buttonSecondary);
-    adjustBtn.on('pointerdown', () => this.generator.openAvatarAdjuster());
-    this.app.stage.addChild(adjustBtn);
-    
-    // Boton PAQUETE (exportar ZIP completo)
-    const exportPackageBtn = this.createButton(this.app.screen.width - 430, buttonY, 140, 40, 'PAQUETE', this.colors.buttonPurple);
-    exportPackageBtn.on('pointerdown', () => this.generator.exportCombinaPackage());
-    this.app.stage.addChild(exportPackageBtn);
-    
-    // Boton NUEVO (recargar pagina para importar otro JSON)
-    const newBtn = this.createButton(20, buttonY, 120, 40, 'NUEVO', this.colors.buttonDanger);
-    newBtn.on('pointerdown', () => {
-        this.generator.resetToImport();
-    });
-    this.app.stage.addChild(newBtn);
-    
-    console.log('Botones creados: GUARDAR, AJUSTAR, PAQUETE, NUEVO');
-}
+        const buttonY = this.app.screen.height - 55;
+        const buttons = [
+            { text: 'GUARDAR', x: this.app.screen.width - 140, width: 120, color: this.colors.buttonPrimary },
+            { text: 'AJUSTAR', x: this.app.screen.width - 275, width: 120, color: this.colors.buttonSecondary },
+            { text: 'PAQUETE', x: this.app.screen.width - 415, width: 130, color: this.colors.buttonPurple },
+            { text: 'NUEVO', x: 20, width: 110, color: this.colors.buttonDanger }
+        ];
+        
+        buttons.forEach(btnData => {
+            const btn = this.createPremiumButton(btnData.x, buttonY, btnData.width, 38, btnData.text, btnData.color);
+            if (btnData.text.includes('GUARDAR')) {
+                btn.on('pointerdown', () => this.generator.exportResult());
+            } else if (btnData.text.includes('AJUSTAR')) {
+                btn.on('pointerdown', () => this.generator.openAvatarAdjuster());
+            } else if (btnData.text.includes('PAQUETE')) {
+                btn.on('pointerdown', () => this.generator.exportCombinaPackage());
+            } else if (btnData.text.includes('NUEVO')) {
+                btn.on('pointerdown', () => this.generator.resetToImport());
+            }
+            this.app.stage.addChild(btn);
+        });
+    }
 
-    createButton(x, y, width, height, text, color) {
+    createPremiumButton(x, y, width, height, text, color) {
+        const container = new PIXI.Container();
+        container.x = x; container.y = y;
+        container.eventMode = 'static'; container.cursor = 'pointer';
+        
         const button = new PIXI.Graphics();
         button.beginFill(color);
-        button.drawRoundedRect(0, 0, width, height, 8);
+        button.drawRoundedRect(0, 0, width, height, 6);
         button.endFill();
-        button.x = x;
-        button.y = y;
-        button.eventMode = 'static';
-        button.cursor = 'pointer';
+        container.addChild(button);
         
         const label = new PIXI.Text(text, {
-            fontFamily: 'Arial',
-            fontSize: 12,
-            fill: 0xffffff,
-            fontWeight: 'bold'
+            fontFamily: 'Arial', fontSize: 12, fill: 0xffffff, fontWeight: 'bold'
         });
         label.x = width / 2 - label.width / 2;
         label.y = height / 2 - label.height / 2;
-        button.addChild(label);
+        container.addChild(label);
         
-        button.on('pointerover', () => button.tint = 0xffffff);
-        button.on('pointerout', () => button.tint = 0xffffff);
-        
-        return button;
+        return container;
     }
 
     updateSlots(slots, positions, spinStates) {
         this.slotViews.forEach((view, index) => {
             const slot = slots[index];
             if (slot && slot.parts) {
-                view.updateParts(
-                    slot.parts,
-                    positions[index],
-                    spinStates[index]
-                );
+                view.updateParts(slot.parts, positions[index], spinStates[index]);
             }
         });
     }

@@ -1,7 +1,7 @@
 {
   "name": "CombinaCosas",
   "version": "1.0.0",
-  "description": "Tragamonedas para generar avatares de abejas en pixel art",
+  "description": "Tragamonedas para generar avatares en pixel art",
   "main": "src/main.js",
   "scripts": {
     "dev": "vite",

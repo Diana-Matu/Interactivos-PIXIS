@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Creador de Combina - Formulario Independiente</title>
+    <title>Creador de Combina</title>
     <style>
         * {
             margin: 0;
@@ -377,7 +377,7 @@
     <div class="form-container">
         <div class="form-header">
             <h1>Creador de Combina</h1>
-            <p>Configura tu tragamonedas de combinaciones en 5 pasos</p>
+            <p>Configura tu tragamonedas de combinaciones en 4 pasos</p>
         </div>
         
         <div class="step-indicator" id="stepIndicator"></div>
@@ -394,13 +394,11 @@
         class FormWizard {
             constructor() {
                 this.currentStep = 0;
-                this.totalSteps = 5;
+                this.totalSteps = 4;
                 this.config = {
                     name: '',
                     partsCount: 3,
-                    partNames: [],
                     orientation: 'horizontal',
-                    theme: 'light',
                     parts: []
                 };
             }
@@ -413,7 +411,7 @@
 
             renderStepIndicator() {
                 const container = document.getElementById('stepIndicator');
-                const steps = ['Nombre', 'Partes', 'Nombres', 'Orientacion', 'Imagenes'];
+                const steps = ['Nombre', 'Partes', 'Orientacion', 'Imagenes'];
                 
                 container.innerHTML = steps.map((label, index) => `
                     <div class="step ${index === this.currentStep ? 'active' : ''} ${index < this.currentStep ? 'completed' : ''}">
@@ -439,9 +437,6 @@
                     case 3:
                         container.innerHTML = this.renderStep4();
                         break;
-                    case 4:
-                        container.innerHTML = this.renderStep5();
-                        break;
                 }
                 
                 this.initStepEvents();
@@ -452,8 +447,8 @@
                     <div class="step-content active">
                         <h2>Nombre del Combina</h2>
                         <div class="form-group">
-                            <label>¿Como se llamara tu creacion?</label>
-                            <input type="text" id="combinaName" placeholder="Ej: Combinabeja, CriaturaFantastica, AvatarEpico..." value="${this.config.name}">
+                            <label>Como se llamara tu creacion</label>
+                            <input type="text" id="combinaName" placeholder="Ej: Combinabeja, CriaturaFantastica, AvatarEpico" value="${this.config.name}">
                         </div>
                         <div class="preview-area">
                             <p>Elige un nombre descriptivo y divertido que identifique tu creacion</p>
@@ -468,11 +463,11 @@
                     <div class="step-content active">
                         <h2>Numero de partes</h2>
                         <div class="form-group">
-                            <label>¿Cuantas partes tendra tu Combina?</label>
+                            <label>Cuantas partes tendra tu Combina</label>
                             <input type="number" id="partsCount" min="2" max="10" value="${this.config.partsCount}">
                         </div>
                         <div class="preview-area">
-                            <p><strong>Ejemplos segun cantidad de partes:</strong></p>
+                            <p><strong>Ejemplos segun cantidad de partes</strong></p>
                             <ul style="margin-top: 10px; margin-left: 20px;">
                                 <li><strong>2 partes:</strong> Cabeza + Cuerpo</li>
                                 <li><strong>3 partes:</strong> Cabeza + Torso + Piernas</li>
@@ -484,35 +479,10 @@
             }
 
             renderStep3() {
-                while(this.config.partNames.length < this.config.partsCount) {
-                    this.config.partNames.push('');
-                }
-                while(this.config.partNames.length > this.config.partsCount) {
-                    this.config.partNames.pop();
-                }
-                
-                let html = `<h2>Nombres de las partes</h2>`;
-                html += `<p style="margin-bottom: 20px; color: #666;">Nombra cada parte en el orden en que se ensamblaran</p>`;
-                
-                for(let i = 0; i < this.config.partsCount; i++) {
-                    html += `
-                        <div class="form-group">
-                            <label>Parte ${i + 1}</label>
-                            <input type="text" class="part-name" data-index="${i}" 
-                                placeholder="Ej: Cabeza, Torso, Brazos, Piernas..." 
-                                value="${this.escapeHtml(this.config.partNames[i])}">
-                        </div>
-                    `;
-                }
-                
-                return `<div class="step-content active">${html}</div>`;
-            }
-
-            renderStep4() {
                 return `
                     <div class="step-content active">
                         <h2>Orientacion del ensamblaje</h2>
-                        <p style="margin-bottom: 20px; color: #666;">¿Como se uniran las partes para formar el avatar final?</p>
+                        <p style="margin-bottom: 20px; color: #666;">Como se uniran las partes para formar el avatar final</p>
                         <div class="orientation-preview">
                             <div class="orientation-box ${this.config.orientation === 'horizontal' ? 'selected' : ''}" data-orientation="horizontal">
                                 <div style="font-size: 30px; margin-bottom: 10px;">⬅️ ➡️</div>
@@ -531,12 +501,15 @@
                 `;
             }
 
-            renderStep5() {
+            renderStep4() {
                 while(this.config.parts.length < this.config.partsCount) {
                     this.config.parts.push({
-                        name: this.config.partNames[this.config.parts.length],
+                        name: 'Parte ' + (this.config.parts.length + 1),
                         variants: []
                     });
+                }
+                while(this.config.parts.length > this.config.partsCount) {
+                    this.config.parts.pop();
                 }
                 
                 let html = `
@@ -547,14 +520,14 @@
                 `;
                 
                 for(let i = 0; i < this.config.partsCount; i++) {
-                    const partName = this.config.partNames[i] || `Parte ${i + 1}`;
+                    const partName = 'Parte ' + (i + 1);
                     const variants = this.config.parts[i]?.variants || [];
                     const variantCount = variants.length;
                     
                     html += `
                         <div class="part-section">
                             <div class="part-title">
-                                ${this.escapeHtml(partName)}
+                                ${partName}
                                 ${variantCount > 0 ? `<span class="image-counter">${variantCount} imagen(es)</span>` : '<span class="image-counter" style="background: #ff9800;">0 imagenes</span>'}
                             </div>
                             <div class="image-upload-area" data-part-index="${i}">
@@ -602,7 +575,6 @@
                                 const newCount = parseInt(e.target.value);
                                 if(newCount >= 2 && newCount <= 10) {
                                     this.config.partsCount = newCount;
-                                    this.config.partNames = this.config.partNames.slice(0, newCount);
                                     this.config.parts = this.config.parts.slice(0, newCount);
                                 } else {
                                     e.target.value = this.config.partsCount;
@@ -612,19 +584,6 @@
                         break;
                         
                     case 2:
-                        const partNames = document.querySelectorAll('.part-name');
-                        partNames.forEach(input => {
-                            input.addEventListener('input', (e) => {
-                                const index = parseInt(e.target.dataset.index);
-                                this.config.partNames[index] = e.target.value;
-                                if(this.config.parts[index]) {
-                                    this.config.parts[index].name = e.target.value;
-                                }
-                            });
-                        });
-                        break;
-                        
-                    case 3:
                         const orientationBoxes = document.querySelectorAll('.orientation-box');
                         orientationBoxes.forEach(box => {
                             box.addEventListener('click', (e) => {
@@ -636,7 +595,7 @@
                         });
                         break;
                         
-                    case 4:
+                    case 3:
                         this.initImageUpload();
                         break;
                 }
@@ -692,7 +651,7 @@
             processImages(files, partIndex) {
                 if (!this.config.parts[partIndex]) {
                     this.config.parts[partIndex] = {
-                        name: this.config.partNames[partIndex],
+                        name: 'Parte ' + (partIndex + 1),
                         variants: []
                     };
                 }
@@ -716,12 +675,12 @@
                         
                         if (processed === validFiles.length) {
                             this.renderStepContent();
-                            this.showMessage(`Se cargaron ${validFiles.length} imagen(es) para "${this.config.partNames[partIndex]}"`, 'success');
+                            this.showMessage('Se cargaron ' + validFiles.length + ' imagen(es) para la ' + (partIndex + 1) + ' parte', 'success');
                         }
                     };
                     reader.onerror = () => {
                         processed++;
-                        this.showMessage(`Error al cargar ${file.name}`, 'error');
+                        this.showMessage('Error al cargar ' + file.name, 'error');
                     };
                     reader.readAsDataURL(file);
                 });
@@ -747,24 +706,15 @@
                         }
                         break;
                         
-                    case 2:
-                        for(let i = 0; i < this.config.partsCount; i++) {
-                            if (!this.config.partNames[i] || !this.config.partNames[i].trim()) {
-                                this.showMessage(`Por favor ingresa un nombre para la Parte ${i + 1}`, 'error');
-                                return false;
-                            }
-                        }
-                        break;
-                        
-                    case 4:
+                    case 3:
                         const missingParts = [];
                         for(let i = 0; i < this.config.partsCount; i++) {
                             if (!this.config.parts[i] || this.config.parts[i].variants.length === 0) {
-                                missingParts.push(this.config.partNames[i]);
+                                missingParts.push('Parte ' + (i + 1));
                             }
                         }
                         if (missingParts.length > 0) {
-                            this.showMessage(`Faltan imagenes para: ${missingParts.join(', ')}. Cada parte necesita al menos una imagen.`, 'error');
+                            this.showMessage('Faltan imagenes para: ' + missingParts.join(', ') + '. Cada parte necesita al menos una imagen.', 'error');
                             return false;
                         }
                         break;
@@ -842,7 +792,7 @@
                 for (let i = 0; i < this.config.partsCount; i++) {
                     finalConfig.parts.push({
                         id: i,
-                        name: this.config.partNames[i],
+                        name: 'Parte ' + (i + 1),
                         variants: this.config.parts[i].variants.map((v, idx) => ({
                             name: v.name,
                             dataURL: v.dataURL,
@@ -859,16 +809,16 @@
                 const link = document.createElement('a');
                 const safeName = this.config.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
                 const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
-                link.download = `${safeName}_${timestamp}.json`;
+                link.download = safeName + '_' + timestamp + '.json';
                 link.href = url;
                 link.click();
                 
                 URL.revokeObjectURL(url);
                 
-                this.showMessage(`Combina "${this.config.name}" exportado con exito! El archivo JSON contiene todas las imagenes.`, 'success');
+                this.showMessage('Combina "' + this.config.name + '" exportado con exito. El archivo JSON contiene todas las imagenes.', 'success');
                 
                 setTimeout(() => {
-                    const goToGame = confirm('Deseas ir al combinador para jugar con tu creacion?\n\nNecesitaras tener abierto el combinador y usar el boton "IMPORTAR" para cargar el JSON que acabas de descargar.');
+                    const goToGame = confirm('Deseas ir al combinador para jugar con tu creacion\n\nNecesitaras tener abierto el combinador y usar el boton "IMPORTAR" para cargar el JSON que acabas de descargar.');
                     if (goToGame) {
                         alert('Abre el combinador (index.html) y haz clic en el boton "IMPORTAR" para cargar el archivo JSON.');
                     }

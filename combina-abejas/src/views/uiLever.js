@@ -1,314 +1,156 @@
 import * as PIXI from 'pixi.js';
 
 export class UILever extends PIXI.Container {
-    constructor(x, y, scale = 1.5, onSpin = null) {
+    constructor(x, y, scale = 1.4, onPull) {
         super();
-        
         this.x = x;
         this.y = y;
-        this.baseScale = scale;
         this.scale.set(scale);
-        this.onSpin = onSpin;
-        
-        // Estados de la palanca
-        this.isAnimating = false;
-        this.angle = 0;
-        this.maxAngle = 65;
-        
-        // Elementos gráficos
-        this.armGraphics = null;
-        this.knobGraphics = null;
-        this.baseContainer = null;
-        
-        this.createBase();
-        this.createMovingParts();
-        this.createStaticElements();
-        
-        this.setupInteractivity();
-    }
+        this.onPull = onPull;
 
-    createBase() {
-        this.baseContainer = new PIXI.Container();
-        
-        // Sombra de la base
-        const baseShadow = new PIXI.Graphics();
-        baseShadow.beginFill(0x000000, 0.3);
-        baseShadow.drawRoundedRect(-15, 5, 55, 85, 12);
-        baseShadow.endFill();
-        
-        // Base principal
-        const base = new PIXI.Graphics();
-        base.beginFill(0x555555);
-        base.drawRoundedRect(-20, 0, 65, 85, 15);
-        base.endFill();
-        
-        // Detalles metálicos
-        base.lineStyle(1, 0x777777, 0.5);
-        for (let i = 0; i < 70; i += 8) {
-            base.moveTo(-15, i + 5);
-            base.lineTo(50, i + 5);
-        }
-        
-        base.lineStyle(2, 0x999999);
-        base.drawRoundedRect(-20, 0, 65, 85, 15);
-        
-        base.lineStyle(1, 0x333333);
-        base.drawRoundedRect(-18, 2, 61, 81, 13);
-        
-        // Tornillos decorativos
-        const screwPositions = [
-            {x: -10, y: 15},
-            {x: 45, y: 15},
-            {x: -10, y: 65},
-            {x: 45, y: 65}
-        ];
-        
-        screwPositions.forEach(pos => {
-            const screw = new PIXI.Graphics();
-            screw.beginFill(0x888888);
-            screw.drawCircle(pos.x, pos.y, 5);
-            screw.endFill();
-            
-            screw.lineStyle(2, 0x444444);
-            screw.moveTo(pos.x - 3, pos.y - 3);
-            screw.lineTo(pos.x + 3, pos.y + 3);
-            screw.moveTo(pos.x + 3, pos.y - 3);
-            screw.lineTo(pos.x - 3, pos.y + 3);
-            
-            base.addChild(screw);
-        });
-        
-        // Placa frontal
-        const plate = new PIXI.Graphics();
-        plate.beginFill(0xffffff, 0.1);
-        plate.drawRoundedRect(-15, 5, 55, 75, 10);
-        plate.endFill();
-        
-        this.baseContainer.addChild(baseShadow);
-        this.baseContainer.addChild(base);
-        this.baseContainer.addChild(plate);
-        
-        this.addChild(this.baseContainer);
-    }
+        this.isPulling = false;
+        this.pullProgress = 0; // 0 = arriba, 1 = completamente abajo
 
-    createMovingParts() {
-        this.pivotX = 15;
-        this.pivotY = 30;
-        
-        this.armGraphics = new PIXI.Graphics();
-        this.addChild(this.armGraphics);
-        
-        this.knobGraphics = new PIXI.Graphics();
-        this.addChild(this.knobGraphics);
-        
-        this.updateMovingParts();
-    }
-
-    createStaticElements() {
-        // Texto "TIRA"
-        const pullLabel = new PIXI.Text('TIRA', {
-            fontFamily: 'Arial',
-            fontSize: 14,
-            fill: 0xffffff,
-            align: 'center',
-            fontWeight: 'bold'
-        });
-        pullLabel.x = 25;
-        pullLabel.y = -35;
-        this.addChild(pullLabel);
-        
-        
-        // Texto "PALANCA"
-        const leverLabel = new PIXI.Text('PALANCA', {
-            fontFamily: 'Arial',
-            fontSize: 12,
-            fill: 0xffd93d,
-            align: 'center',
-            fontWeight: 'bold'
-        });
-        leverLabel.x = 20;
-        leverLabel.y = 95;
-        this.addChild(leverLabel);
-        
-        // Flecha indicadora
-        this.arrow = new PIXI.Graphics();
-        this.arrow.beginFill(0xffd93d);
-        this.arrow.drawPolygon([-6, -18, 6, -18, 0, -8]);
-        this.arrow.endFill();
-        this.arrow.x = 25;
-        this.arrow.y = -45;
-        this.addChild(this.arrow);
-        
-        this.animateArrow();
-    }
-
-    animateArrow() {
-        let direction = 1;
-        const animate = () => {
-            if (!this.isAnimating) {
-                this.arrow.y += direction * 0.3;
-                if (this.arrow.y > -42 || this.arrow.y < -48) {
-                    direction *= -1;
-                }
-            }
-            requestAnimationFrame(animate);
-        };
-        animate();
-    }
-
-    updateMovingParts() {
-        this.armGraphics.clear();
-        this.knobGraphics.clear();
-        
-        const armLength = 100;
-        const rad = this.angle * Math.PI / 180;
-        
-        const endX = this.pivotX + Math.sin(rad) * armLength;
-        const endY = this.pivotY - Math.cos(rad) * armLength;
-        
-        // Sombra del brazo
-        this.armGraphics.lineStyle(14, 0x333333, 0.4);
-        this.armGraphics.moveTo(this.pivotX + 2, this.pivotY + 2);
-        this.armGraphics.lineTo(endX + 2, endY + 2);
-        
-        // Brazo principal
-        this.armGraphics.lineStyle(14, 0x888888);
-        this.armGraphics.moveTo(this.pivotX, this.pivotY);
-        this.armGraphics.lineTo(endX, endY);
-        
-        // Reflejo
-        this.armGraphics.lineStyle(4, 0xcccccc, 0.6);
-        this.armGraphics.moveTo(this.pivotX - 1, this.pivotY - 1);
-        this.armGraphics.lineTo(endX - 1, endY - 1);
-        
-        // Bisagra
-        this.armGraphics.beginFill(0x444444);
-        this.armGraphics.drawCircle(this.pivotX, this.pivotY, 10);
-        this.armGraphics.endFill();
-        this.armGraphics.beginFill(0x888888);
-        this.armGraphics.drawCircle(this.pivotX, this.pivotY, 6);
-        this.armGraphics.endFill();
-        
-        // Sombra de la bolita
-        this.knobGraphics.beginFill(0x330000, 0.5);
-        this.knobGraphics.drawCircle(endX + 3, endY + 3, 18);
-        this.knobGraphics.endFill();
-        
-        // Bolita roja
-        this.knobGraphics.beginFill(0xff3333);
-        this.knobGraphics.drawCircle(endX, endY, 18);
-        this.knobGraphics.endFill();
-        
-        // Brillo
-        this.knobGraphics.beginFill(0xff8888);
-        this.knobGraphics.drawCircle(endX - 4, endY - 4, 5);
-        this.knobGraphics.endFill();
-        
-        // Reflejo
-        this.knobGraphics.beginFill(0xffffff, 0.8);
-        this.knobGraphics.drawCircle(endX - 2, endY - 2, 2);
-        this.knobGraphics.endFill();
-        
-        // Anillo metálico
-        this.knobGraphics.lineStyle(2, 0xcccccc);
-        this.knobGraphics.drawCircle(endX, endY, 18);
-    }
-
-    setupInteractivity() {
-        // Hacer que TODA la palanca sea interactiva
         this.eventMode = 'static';
         this.cursor = 'pointer';
+
+        this.createLeverGraphics();
         
-        // Evento de clic
-        this.on('pointerdown', this.onClick.bind(this));
-        
-        // Hover effects
-        this.on('pointerover', this.onHover.bind(this));
-        this.on('pointerout', this.onOut.bind(this));
+        // Registrar eventos de interacción de arrastre/clic
+        this.on('pointerdown', this.onPointerDown, this);
     }
 
-    onClick() {
-        if (this.isAnimating) return;
+    createLeverGraphics() {
+            // 1. BASE MECÁNICA REFORZADA (Chasis de acero más ancho y pesado)
+            this.base = new PIXI.Graphics();
+            // Sombra de la base agrandada
+            this.base.beginFill(0x000000, 0.45);
+            this.base.drawRect(-22, -20, 48, 50);
+            this.base.endFill();
+            // Bloque de acero base reforzado
+            this.base.beginFill(0x4e545c);
+            this.base.drawRoundedRect(-18, -16, 40, 44, 6);
+            this.base.endFill();
+            // Bisel interno cromado industrial
+            this.base.lineStyle(2, 0x95a5a6, 0.85);
+            this.base.drawRoundedRect(-15, -13, 34, 38, 4);
+            // Eje central de torsión negro más grueso
+            this.base.lineStyle(0);
+            this.base.beginFill(0x1a1a1a);
+            this.base.drawCircle(2, 6, 14);
+            this.base.endFill();
+            this.addChild(this.base);
+
+            // 2. CONTENEDOR DEL BRAZO MÓVIL
+            this.movingPart = new PIXI.Container();
+            this.movingPart.x = 2;
+            this.movingPart.y = 6;
+            this.addChild(this.movingPart);
+
+            // =========================================================================
+            // MÁSTIL METÁLICO MUCHO MÁS GRUESO (Antes medía 5px de ancho, ahora mide 12px)
+            // =========================================================================
+            this.shaft = new PIXI.Graphics();
+            // Sombra proyectada del propio mástil
+            this.shaft.beginFill(0x000000, 0.3);
+            this.shaft.drawRect(-7, -75, 12, 75);
+            this.shaft.endFill();
+            // Cuerpo principal del mástil de acero grueso
+            this.shaft.beginFill(0xbdc3c7);
+            this.shaft.drawRect(-6, -75, 12, 75);
+            this.shaft.endFill();
+            // Reflejo/Brillo metálico central biselado para volumen 3D
+            this.shaft.beginFill(0xffffff, 0.75);
+            this.shaft.drawRect(-2, -75, 3, 75);
+            this.shaft.endFill();
+            // Sombra de oclusión en los bordes para redondear el tubo cilíndrico
+            this.shaft.beginFill(0x7f8c8d, 0.4);
+            this.shaft.drawRect(-6, -75, 2, 75);
+            this.shaft.drawRect(4, -75, 2, 75);
+            this.shaft.endFill();
+            this.movingPart.addChild(this.shaft);
+
+            // =========================================================================
+            // Bola de la palanca
+            // =========================================================================
+            this.knob = new PIXI.Graphics();
+            // Sombra base de la gran esfera
+            this.knob.beginFill(0x000000, 0.35);
+            this.knob.drawCircle(0, -75, 21);
+            this.knob.endFill();
+            // Esfera roja premium
+            this.knob.beginFill(0xc0392b);
+            this.knob.drawCircle(0, -75, 20);
+            this.knob.endFill();
+            // Reflejo de luz esférica superior ampliado para mantener la escala realista
+            this.knob.beginFill(0xff7675, 0.85);
+            this.knob.drawCircle(-6, -81, 8);
+            this.knob.endFill();
+            this.knob.beginFill(0xffffff, 0.95);
+            this.knob.drawCircle(-8, -84, 3.5);
+            this.knob.endFill();
+            this.movingPart.addChild(this.knob);
+        }
+
+    onPointerDown(e) {
+        if (this.isPulling) return;
+        this.isPulling = true;
+        this.animatePull();
         
-        this.isAnimating = true;
-        
-        // Animar hacia abajo
-        this.animateToAngle(this.maxAngle, 150, () => {
-            // Activar giro
-            if (this.onSpin) {
-                this.onSpin();
-            }
-            this.vibrate();
-            
-            // Animar retorno
-            setTimeout(() => {
-                this.animateToAngle(0, 200, () => {
-                    this.isAnimating = false;
-                });
-            }, 100);
-        });
+        if (this.onPull) this.onPull();
     }
 
-    animateToAngle(targetAngle, duration, onComplete = null) {
-        const startAngle = this.angle;
-        const startTime = performance.now();
+    animatePull() {
+        const startTime = Date.now();
+        const durationDown = 250;  // Tiempo de bajada (ms)
+        const durationUp = 350;    // Tiempo de retorno amortiguado (ms)
         
-        const animate = (currentTime) => {
-            const elapsed = currentTime - startTime;
-            const progress = Math.min(1, elapsed / duration);
-            
-            // Easing suave
-            this.angle = startAngle + (targetAngle - startAngle) * (1 - Math.pow(1 - progress, 3));
-            this.updateMovingParts();
-            
-            if (progress < 1) {
-                requestAnimationFrame(animate);
+        const tick = () => {
+            const now = Date.now();
+            const elapsed = now - startTime;
+
+            if (elapsed < durationDown) {
+                // Fase 1: Bajando (Interpolación senoidal suave)
+                const t = elapsed / durationDown;
+                this.pullProgress = Math.sin(t * Math.PI / 2);
+                this.updateLeverTransformation();
+                requestAnimationFrame(tick);
+            } else if (elapsed < durationDown + durationUp) {
+                // Fase 2: Retorno elástico (Efecto resorte de metal hacia arriba)
+                const t = (elapsed - durationDown) / durationUp;
+                // Ecuación de rebote amortiguado para realismo físico
+                const bounce = Math.exp(-t * 5) * Math.cos(t * Math.PI * 2.5);
+                this.pullProgress = Math.max(0, bounce);
+                this.updateLeverTransformation();
+                requestAnimationFrame(tick);
             } else {
-                this.angle = targetAngle;
-                this.updateMovingParts();
-                if (onComplete) onComplete();
+                // Estado final de reposo absoluto
+                this.isPulling = false;
+                this.pullProgress = 0;
+                this.updateLeverTransformation();
             }
         };
-        
-        requestAnimationFrame(animate);
+
+        requestAnimationFrame(tick);
     }
 
-    onHover() {
-        if (!this.isAnimating) {
-            this.knobGraphics.tint = 0xff6666;
-            this.knobGraphics.scale.set(1.1);
-            this.arrow.tint = 0xffaa00;
-        }
-    }
-
-    onOut() {
-        if (!this.isAnimating) {
-            this.knobGraphics.tint = 0xffffff;
-            this.knobGraphics.scale.set(1);
-            this.arrow.tint = 0xffffff;
-        }
-    }
-
-    vibrate() {
-        const originalX = this.x;
+    updateLeverTransformation() {
+        // =========================================================================
+        // LÓGICA DE PROYECCIÓN 3D PARA GIRO VERTICAL
+        // =========================================================================
         
-        for (let i = 0; i < 4; i++) {
-            setTimeout(() => {
-                this.x = originalX + (i % 2 === 0 ? 4 : -4);
-            }, i * 60);
-        }
+        // Al jalar, el brazo rota sutilmente hacia abajo y se comprime en el eje Y
+        // para dar la ilusión óptica de que está saliendo de la pantalla hacia el usuario.
+        const maxScaleY = -0.3; // Invierte y achica el mástil al máximo recorrido hacia el frente
+        const currentScaleY = 1.0 - (this.pullProgress * (1.0 - maxScaleY));
         
-        setTimeout(() => {
-            this.x = originalX;
-        }, 240);
-    }
+        this.movingPart.scale.y = currentScaleY;
 
-    setEnabled(enabled) {
-        this.eventMode = enabled ? 'static' : 'none';
-        this.alpha = enabled ? 1 : 0.5;
-        
-        if (!enabled) {
-            this.cursor = 'default';
-        }
+        // Desplazamiento mecánico complementario de la bola roja hacia abajo
+        // Esto acentúa el peso de la física de la palanca.
+        this.knob.y = this.pullProgress * 110;
+
+        // Oscurecer ligeramente el mástil cuando está abajo para simular que entra en su propia sombra
+        this.shaft.alpha = 1.0 - (this.pullProgress * 0.25);
     }
 }
